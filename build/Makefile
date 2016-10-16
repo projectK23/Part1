@@ -19,6 +19,31 @@ GCCFLAGS=-Wall -O3 -o
 
 CIN=-I ../include
 
+#libraries included folders
+CINLIB= \
+	-I ../libs/log/include
+
+#debug level
+ifeq ($(D),error)
+	DEBUG_LEVEL=1
+	C99=-std=c99
+else 
+	ifeq ($(D),trace)
+		DEBUG_LEVEL=2
+		C99=--std=c99
+	else
+		ifeq ($(D),all)
+			DEBUG_LEVEL=3
+			C99=--std=c99
+		else
+			DEBUG_LEVEL=0
+		endif
+	endif
+endif
+
+#precompile variables
+DFLAGS=-DDEBUG_LEVEL=$(DEBUG_LEVEL)
+
 #Test parameters
 CINUNIT=-I $(ROOTUNIT)
 TEST_C := $(wildcard $(ROOTTEST)*.c)
@@ -61,6 +86,7 @@ test_all: test $(EXETEST)
 	./$(EXETEST) reg > $(TESTOUTFILE)
 	
 test:
+	echo $(DFLAGS)
 	$(foreach file,$(TEST_C),($(GCC) -c $(file) $(CINUNIT) $(CIN));)
 
 $(OUTDIR):
@@ -74,10 +100,10 @@ $(EXETEST): $(TEST_O) $(UNI_O) $(SRC_O)
 	
 
 $(MAIN_O): $(MAIN_C)
-	$(GCC) -c $(MAIN_C) -o $(MAIN_O) $(CIN)
+	$(GCC) $(C99) -c $(MAIN_C) -o $(MAIN_O) $(CIN) $(CINLIB) $(DFLAGS)
 
 $(SRC_O): $(SRC_C)
-	$(GCC) -c $(SRC_C) -o $(SRC_O) $(CIN)
+	$(GCC) $(C99) -c $(SRC_C) -o $(SRC_O) $(CIN) $(CINLIB) $(DFLAGS)
 
 $(UNI_O): $(UNI_C)
 	$(GCC) -c $(UNI_C) -o $(UNI_O) $(CIN)
