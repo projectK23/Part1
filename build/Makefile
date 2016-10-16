@@ -51,6 +51,7 @@ run: $(EXE)
 	./$(EXE)
 
 memtest: directories test $(EXE) $(EXETEST) 
+	rm -f $(TEST_O)
 	valgrind --leak-check=yes ./$(EXE)
 	valgrind --leak-check=yes ./$(EXETEST) reg
 

@@ -18,6 +18,7 @@ int testnum;
 
 void init_test_suite(){
 	LOGO("test_suite_0");
+	init_suite_eval();
 	testnum = 0;
 }
 
@@ -32,5 +33,5 @@ int test_suite_0(){
 	TEST(++testnum, "f_err(1) returns T", f_err(1) );
 	TEST(++testnum, "f_err(2) returns F", !f_err(2) );
 	clear_test_suite();
-	return 0;
+	return suite_eval();
 }

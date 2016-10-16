@@ -10,6 +10,13 @@
 void TEST(int testnum, char *description,int eval);
 
 /**
+ * evaluates the number of failed test cases
+ */
+void init_suite_eval();
+int suite_eval();
+
+
+/**
  * evaluates the number of passed tests
  */
 int evaluate();

@@ -5,6 +5,9 @@
 #include "unimacros.h"
 
 
+#define PRINT_RESULT( ev ) \
+	printf("\n... Test suite finished. %d test cases failed\n", (ev));
+
 /* The suite config.
  * Should returns zero on success, non-zero otherwise.
  */
@@ -18,6 +21,8 @@ int main(int argc , char *argv[]){
 	else SET_TEST_MODE(1);
 
 	/* Run test cases */
-	test_suite_0();
+	PRINT_RESULT( test_suite_0() )
+
+	/* evaluate result */
 	return evaluate();
 }
