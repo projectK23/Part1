@@ -7,7 +7,7 @@ Install valgrind for memory checks
 #Usage
 1. make executable and run tests:
 $ make
-!test.out gives test results
+(test.out gives test results)
 
 2. make executable only without tests:
 $ make SKIP_TEST=true
@@ -19,5 +19,5 @@ $ make memtest
 1. Under test folder add your test_suite as example test_suite_0
 2. Include your test suite in main_test.c
 3. No modifications are needed in Makefile for adding only a test suite
-4. If a file under src is created, the this file should be included in the corresponding targets
+4. If a file under src is created, then this file should be included in the corresponding targets
 

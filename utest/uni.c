@@ -27,7 +27,7 @@ int evaluate(){
 	int total = num_passed+num_failed;
 	__logprintf("\n\nTotal results: ");
 	__logprintf("%2.2f %% (%d:%d) of test cases passed\n",
-			(float)(100*num_passed)/(float)(total), num_failed, total );
+			(float)(100*num_passed)/(float)(total), num_passed, total );
 	return num_failed;
 }
 
