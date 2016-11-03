@@ -95,7 +95,7 @@ int insert_neighbor(NodeIndex* nodeindex, uint32_t source, uint32_t dest)
 	    		break;
 	    	}
 		}
-		if (stop == 1) break;
+		if (stop) break;
 		if(list->nextListNode == NULL)
 			list->nextListNode= allocNewNode(nodeindex->buffer);
 	    list= list->nextListNode;
