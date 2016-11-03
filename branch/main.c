@@ -20,7 +20,7 @@ int main(int argc, char *argv[]) {
 		scanf(" %d", &dest);
 		if (source == dest) continue;
 		if (insertNode(index_out, source))
-			insertNode(index_in, source);
+		    insertNode(index_in, source);
 		if (insertNode(index_out, dest))
 		    insertNode(index_in, dest);
 		if (insertNeighbor(index_out, source, dest))
@@ -34,11 +34,11 @@ int main(int argc, char *argv[]) {
 		if (!strcmp(op, "A")) {
 			if (source == dest) continue;
 			if (insertNode(index_out, source))
-				insertNode(index_in, source);
+			    insertNode(index_in, source);
 			if (insertNode(index_out, dest))
-		    	insertNode(index_in, dest);
+		            insertNode(index_in, dest);
 			if (insertNeighbor(index_out, source, dest))
-		    	insertNeighbor(index_in, dest, source);
+		    	    insertNeighbor(index_in, dest, source);
 		}
 	}
 
