@@ -40,13 +40,16 @@ void clear_test_suite_4(){
  */
 
 Boolean TestCaseQueue1(){
-	int i, itest;
+	int i;
+	data_t d, d_test;
 	for ( i = 0; i < 10; i++){
-		if ( Q_push(q, i) != Success )return False;
+		d.nodeId = i;
+		d.step = i;
+		if ( Q_push(q, d) != Success )return False;
 	}
 	if ( Q_size(q) != 10 )return False;
 	for ( i = 0; i < 10; i++){
-		if ( Q_pop(q, &itest) != Success AND itest != i)return False;
+		if ( Q_pop(q, &d_test) != Success AND d_test.nodeId != i AND d_test.step != i)return False;
 	}
 	return True;
 }

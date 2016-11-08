@@ -466,8 +466,7 @@ int l_existPathInGraph(NodeIndex *index, uint32_t source, uint32_t target){
 	}
 
 	Q q;
-	int length = 0;
-	uint32_t nodeId;
+	data_t node;
 	ptr list_node_ptr;
 	list_node *list_node_p;
 	int i;
@@ -477,29 +476,33 @@ int l_existPathInGraph(NodeIndex *index, uint32_t source, uint32_t target){
 		TRACE_OUT
 		return -1;
 	}
-	if ( Q_push(q, source) != Success ){
+	node.nodeId = source;
+	node.step = 0;
+	if ( Q_push(q, node) != Success ){
 		ERROR("q_init failed")
 		goto search_error;
 	}
 	while( !Q_isEmpty(q) ){
-		if ( Q_pop(q, &nodeId) != Success ){
+		if ( Q_pop(q, &node) != Success ){
 			FATAL("Error in search algorithm (Q1). Probable software error.")
 			goto search_error;
 		}
-		if ( nodeId == target ){
+		if ( node.nodeId == target ){
 			LOG("Found path")
 			goto search_found;
 		}
-		if ( ( list_node_ptr = getListHead(index, nodeId) ) == NULL ){
+		if ( ( list_node_ptr = getListHead(index, node.nodeId) ) == NULL ){
 			FATAL("Error in search algorithm (I). Probable software error.")
 			LOG("Unsafe search results")
 			continue;
 		}
 		list_node_p = getListNode(list_node_ptr);
+		node.step += 1;
 		do{
 			for ( i = 0; i < INIT; i++){
 				if ( list_node_p->neighbor[i] == -1 )break;
-				if ( Q_push(q, list_node_p->neighbor[i]) != Success){
+				node.nodeId = list_node_p->neighbor[i];
+				if ( Q_push(q, node) != Success){
 					FATAL("Error in search algorithm (Q2). Probable software error.")
 					goto search_error;
 				}
@@ -507,7 +510,6 @@ int l_existPathInGraph(NodeIndex *index, uint32_t source, uint32_t target){
 			}
 
 		}while(  (list_node_p = (list_node* )list_node_p->nextListNode) != NULL );
-		length++;
 	}
 	TRACE_OUT
 	LOG("Path not found, normal execution")
@@ -516,7 +518,7 @@ int l_existPathInGraph(NodeIndex *index, uint32_t source, uint32_t target){
 search_found:
 	TRACE_OUT
 	Q_destroy(&q);
-	return length;
+	return node.step;
 
 search_error:
 	Q_destroy(&q);

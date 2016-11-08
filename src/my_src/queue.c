@@ -11,7 +11,7 @@
 #include "../libs/include/shared_definitions.h"
 #include "../libs/include/result_codes.h"
 #include "../libs/include/log.h"
-#include "queue.h"
+#include "../../include/queue.h"
 
 
 Q Q_init(){
@@ -42,7 +42,7 @@ void Q_destroy(Q *q){
 		return;
 
 	}
-	uint32_t dmy;
+	data_t dmy;
 	OK_SUCCESS ret;
 	while( (ret = Q_pop(*q, &dmy) ) != Empty_list ){
 		if ( ret != Success){
@@ -77,7 +77,7 @@ int Q_size(Q q){
 
 
 
-OK_SUCCESS Q_push(Q q, uint32_t nodeId){
+OK_SUCCESS Q_push(Q q, data_t d){
 	TRACE_IN
 	if ( q == NULL ){
 		ERROR("Uninitialized queue")
@@ -92,7 +92,8 @@ OK_SUCCESS Q_push(Q q, uint32_t nodeId){
 	}
 	((node_t*)node)->n = q->first;
 	((node_t*)node)->p = NULL;
-	((node_t*)node)->nodeId = nodeId;
+	((node_t*)node)->data.nodeId = d.nodeId;
+	((node_t*)node)->data.step = d.step;
 	q->first = node;
 	if ( q->last == NULL)
 		q->last = node;
@@ -104,7 +105,7 @@ OK_SUCCESS Q_push(Q q, uint32_t nodeId){
 }
 
 
-OK_SUCCESS Q_pop(Q q, uint32_t *nodeId){
+OK_SUCCESS Q_pop(Q q, data_t *d){
 	TRACE_IN
 	if ( q == NULL ){
 		ERROR("Uninitialized queue")
@@ -118,7 +119,8 @@ OK_SUCCESS Q_pop(Q q, uint32_t *nodeId){
 	}
 	node_t *node;
 	node = q->last;
-	*nodeId = node->nodeId;
+	d->nodeId= node->data.nodeId;
+	d->step= node->data.step;
 
 	if ( q->first == q->last){
 		free(node);
