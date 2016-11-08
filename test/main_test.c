@@ -3,6 +3,7 @@
 
 #include "testsuitedef.h"
 #include "unimacros.h"
+#include "../libs/include/shared_definitions.h"
 
 
 #define PRINT_RESULT( ev ) \
@@ -13,6 +14,7 @@
  */
 int main(int argc , char *argv[]){
 	/* Configure test */
+printf("INIT : %d\n", INIT);
 	if ( argc == 1){
 		printf("No argument: test for VIRTUAL 0");
 		SET_TEST_MODE(1);
@@ -24,6 +26,7 @@ int main(int argc , char *argv[]){
 	PRINT_RESULT( test_suite_1() )
 	PRINT_RESULT( test_suite_2() )
 	PRINT_RESULT( test_suite_3() )
+	PRINT_RESULT( test_suite_4() )
 
 	/* evaluate result */
 	return evaluate();

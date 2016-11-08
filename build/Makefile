@@ -67,7 +67,10 @@ SRC_NODE_I_O=$(OUTDIR)NodeIndex.o
 SRC_GRAPH_C= $(ROOTSRC)my_src/graph_operations.c
 SRC_GRAPH_O= $(OUTDIR)graph_operations.o
 
-SRC_O=$(SRC_BUFFER_O) $(SRC_NODE_I_O) $(SRC_GRAPH_O)
+SRC_Q_C= $(ROOTSRC)my_src/queue.c
+SRC_Q_O= $(OUTDIR)queue.o
+
+SRC_O=$(SRC_BUFFER_O) $(SRC_NODE_I_O) $(SRC_GRAPH_O) $(SRC_Q_O)
 
 OBJS=$(MAIN_O) $(SRC_O) $(TEST_O)
 
@@ -121,6 +124,10 @@ $(SRC_NODE_I_O): $(SRC_NODE_I_C)
 
 $(SRC_GRAPH_O): $(SRC_GRAPH_C)
 	$(GCC) $(C99) -c $(SRC_GRAPH_C) -o $(SRC_GRAPH_O) $(CIN) $(CINLIB) $(DFLAGS)
+
+$(SRC_Q_O): $(SRC_Q_C)
+	$(GCC) $(C99) -c $(SRC_Q_C) -o $(SRC_Q_O) $(CIN) $(CINLIB) $(DFLAGS)
+
 
 $(UNI_O): $(UNI_C)
 	$(GCC) -c $(UNI_C) -o $(UNI_O) $(CIN)
