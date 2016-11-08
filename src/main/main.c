@@ -64,17 +64,17 @@ OK_SUCCESS initialize(){
  */
 OK_SUCCESS handleBlast1(){
 	TRACE_IN
-	FILE *fp1;
+	FILE *fp;
 	OK_SUCCESS ret;
 
-	if ( (fp1 = fopen(fileB1, "r") ) == NULL ){
+	if ( (fp = fopen(fileB1, "r") ) == NULL ){
 		FATAL("Unable to open file for reading")
 		TRACE_OUT
 		return File_does_not_exist;
 	}
 
-	LOG("Read datafrom blast1 file")
-	while( fgets(op, 127, fp1) != NULL ){
+	LOG("Read data from blast1 file")
+	while( fgets(op, 127, fp) != NULL ){
 		if ( strcmp(op, "s") == 0 || strcmp(op, "S") == 0 ){
 			LOG("First blast completed!")
 			break;
@@ -128,7 +128,75 @@ OK_SUCCESS handleBlast1(){
 		insertEdgeInGraph(graph, source, dest);
 
 	}
-	fclose(fp1);
+	fclose(fp);
+	TRACE_OUT
+	return Success;
+}
+
+/**
+ * PURPOSE : Handle 1st blast
+ * RETURNS : Status
+ */
+#define __add__    'A'
+#define __querry__ 'Q'
+OK_SUCCESS handleBlast2(){
+	TRACE_IN
+	FILE *fp;
+	OK_SUCCESS ret;
+	char action;
+	if ( (fp = fopen(fileB2, "r") ) == NULL ){
+		FATAL("Unable to open file for reading")
+		TRACE_OUT
+		return File_does_not_exist;
+	}
+
+	LOG("Read data from blast2 file")
+	while( fgets(op, 127, fp) != NULL ){
+		printf("op = %s", op);
+		if ( op[0] == 'F' || op[0] == 'f' ){
+			LOG("First burst completed!")
+			continue;
+		}
+		sscanf(op, "%c %d %d", &action, &source, &dest);
+		switch( action ){
+
+			case __add__:
+				if ( ( ret = insertNodeInGraph(graph, source) ) != Success ){
+					if ( ret != Request_data_found){
+						ERROR("Source node failed to get in graph. Ignore action")
+						printf("RET = %d\n", ret);
+						break;
+					}else{
+						LOG("Source node already exists in graph")
+					}
+				}
+				if ( ( ret = insertNodeInGraph(graph, dest) ) != Success ){
+					if ( ret != Request_data_found){
+						ERROR("Destination node failed to get in graph. Ignore action")
+						printf("RET = %d\n", ret);
+						break;
+					}else{
+						LOG("Source node already exists in graph")
+					}
+				}
+				if ( ( ret = insertEdgeInGraph(graph, source, dest) ) != Success ){
+					ERROR("Edge failed to get in graph. Ignore action")
+					printf("RET = %d\n", ret);
+				}
+				break;
+
+			case __querry__:
+				printf("%d", existPathInGraph(graph, source, dest) );
+				break;
+
+			default:
+				ERROR("Unknown command. Ignore")
+				break;
+		}
+
+
+	}
+	fclose(fp);
 	TRACE_OUT
 	return Success;
 }
@@ -149,7 +217,7 @@ int main(int argc, char *argv[]){
 #if DEBUG_LEVEL == 0
 	if ( argc != 3 )
 	{
-		ERROR("Can not open files")
+		ERROR("No file arguments provided")
 		printf("Give file for Blast 1: ");
 		scanf("%s", fileB1 );
 		printf("Give file for Blast 2: ");
@@ -164,6 +232,12 @@ int main(int argc, char *argv[]){
 		TRACE_OUT
 		return 1;
 	}
+	if ( handleBlast2() != Success ){
+		FATAL("Failed to do actions");
+		TRACE_OUT
+		return 1;
+	}
+
 
 	if ( graphDestroy(&graph) != Success ){
 		ERROR("Unable destroy graph")

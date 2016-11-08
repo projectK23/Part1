@@ -17,6 +17,7 @@ typedef enum{
 	Request_data_found,
 	File_exists,
 	File_does_not_exist,
+	Threads_not_created,
 	Max_Error_Num
 }Result;
 

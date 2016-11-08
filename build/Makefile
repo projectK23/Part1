@@ -23,6 +23,9 @@ CIN=-I ../include
 CINLIB= \
 	-I ../libs/include
 
+STANDARD_LIBS= \
+	-lpthread
+
 #debug level
 ifeq ($(D),error)
 	DEBUG_LEVEL=1
@@ -101,10 +104,10 @@ $(OUTDIR):
 	$(MKDIR_P) $(OUTDIR)
 
 $(EXE): $(MAIN_O) $(SRC_O)
-	$(GCC) $(GCCFLAGS) $(EXE) $(MAIN_O) $(SRC_O)
+	$(GCC) $(GCCFLAGS) $(EXE) $(MAIN_O) $(SRC_O) $(STANDARD_LIBS)
 
 $(EXETEST): $(TEST_O) $(UNI_O) $(SRC_O) 
-	$(GCC) $(GCCFLAGS) $(EXETEST) $(TEST_O) $(UNI_O) $(SRC_O)
+	$(GCC) $(GCCFLAGS) $(EXETEST) $(TEST_O) $(UNI_O) $(SRC_O) $(STANDARD_LIBS)
 	
 
 $(MAIN_O): $(MAIN_C)

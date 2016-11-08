@@ -1,6 +1,7 @@
 #ifndef __graph_operations
 #define __graph_operations
 
+
 #include "../libs/include/result_codes.h"
 #include "../libs/include/shared_definitions.h"
 
@@ -52,6 +53,26 @@ OK_SUCCESS insertNodeInGraph(Graph graph, uint32_t nodeId);
  * COMMENTS: n/a
  */
 OK_SUCCESS insertEdgeInGraph(Graph graph, uint32_t sourceId, uint32_t destId);
+
+/******************************************************
+ * PURPOSE : Search path
+ * IN      : Graph, source, target
+ * OUT     : Result cause
+ * COMMENTS: Path is not hold somewhere.
+ */
+int existPathInGraph(Graph graph, uint32_t source, uint32_t target);
+
+
+/******************************************************
+ * PURPOSE : Search path
+ * IN      : Graph, source, target
+ * OUT     : Result cause
+ * COMMENTS: Path is not hold somewhere.
+ *           2 posix threads do b-directional search
+ *           main_thread is blocked, until result
+ *
+ */
+int existPathInGraphBD(Graph graph, uint32_t source, uint32_t target);
 
 
 

@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
+
 
 /**
  * Local libs
@@ -63,7 +65,6 @@ Graph graphCreate(){
 		LOG("BufferInc successfully created")
 		graph->startBufferInc = graph->bufferInc->list_nodes;
 	}
-
 	TRACE_OUT
 	return graph;
 destroy_members:
@@ -71,6 +72,7 @@ destroy_members:
 	destroyNodeIndex(graph->nodeIndexInc);
 	destroyBuffer(graph->bufferOut);
 	destroyBuffer(graph->bufferInc);
+	free(graph);
 	return NULL;
 }
 
@@ -445,3 +447,36 @@ printGraph(graph);
 	TRACE_OUT
 	return Success;
 }
+
+/******************************************************
+ * PURPOSE : Search path
+ * IN      : Graph, source, target
+ * OUT     : Path length
+ * COMMENTS: Path is not hold somewhere.
+ */
+int existPathInGraph(Graph graph, uint32_t source, uint32_t target){
+	TRACE_IN
+	printf("1D: %u, T: %u\n", source, target );
+	TRACE_OUT
+	return 1;
+}
+
+
+/******************************************************
+ * PURPOSE : Search path
+ * IN      : Graph, source, target
+ * OUT     : Result cause
+ * COMMENTS: Path is not hold somewhere.
+ *           2 posix threads do b-directional search
+ *           main_thread is blocked, until result
+ *
+ */
+int existPathInGraphBD(Graph graph, uint32_t source, uint32_t target){
+	TRACE_IN
+	printf("BD: %u, T: %u\n", source, target );
+	TRACE_OUT
+	return 1;
+
+}
+
+
