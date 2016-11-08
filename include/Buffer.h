@@ -46,9 +46,9 @@ ptr allocNewNode(Buffer*);
 void freeLastNode(Buffer*);
 
 /***************************************************
- * Purpose : Allocates a new node to the Buffer
- * IN      : Buffer
- * Returns : pointer to the node allocated
+ * Purpose : Casting
+ * IN      : ptr
+ * Returns : pointer to list_node
  */
 list_node* getListNode(ptr);
 

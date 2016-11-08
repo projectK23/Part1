@@ -19,6 +19,7 @@
  */
 #include "graph_operations.h"
 #include "NodeIndex.h"
+#include "queue.h"
 
 /******************************************************
  * PURPOSE : Creates a graph structure
@@ -383,6 +384,11 @@ OK_SUCCESS insertEdgeInGraph(Graph graph, uint32_t sourceId, uint32_t destId){
 		}
 	}
 
+#if DEBUG_LEVEL == 3
+	printGraph(graph);
+#endif
+
+
 	list_node *lnOut, *lnInc;
 	int i;
 	Boolean hasRoom;
@@ -416,9 +422,12 @@ OK_SUCCESS insertEdgeInGraph(Graph graph, uint32_t sourceId, uint32_t destId){
 	LOG("Go in last batch for outgoing edges")
 	lnInc = getListNode(destEdgeList);
 
+printf("lnInc = 0x%x\n", lnInc);
 
-	while(lnInc->nextListNode != NULL)
+	while(lnInc->nextListNode != NULL){
+		printf("--> 0x%x\n", lnInc->nextListNode);
 		lnInc = lnInc->nextListNode;
+	}
 	hasRoom = False;
 	for( i = 0; i < INIT; i++){
 		if ( lnInc->neighbor[i] == 0xffffffff){
@@ -440,25 +449,79 @@ OK_SUCCESS insertEdgeInGraph(Graph graph, uint32_t sourceId, uint32_t destId){
 		}
 	}
 	lnInc->neighbor[i] = sourceId;
-
-printGraph(graph);
-
-
 	TRACE_OUT
 	return Success;
 }
 
-/******************************************************
- * PURPOSE : Search path
- * IN      : Graph, source, target
- * OUT     : Path length
- * COMMENTS: Path is not hold somewhere.
+
+/***************************
+ * LOCAL:
  */
-int existPathInGraph(Graph graph, uint32_t source, uint32_t target){
+int l_existPathInGraph(NodeIndex *index, uint32_t source, uint32_t target){
 	TRACE_IN
-	printf("1D: %u, T: %u\n", source, target );
+	if ( source == target){
+		LOG("source == target in search")
+		TRACE_OUT
+		return 0;
+	}
+
+	Q q;
+	int length = 0;
+	uint32_t nodeId;
+	ptr list_node_ptr;
+	list_node *list_node_p;
+	int i;
+
+	if ( ( q = Q_init() ) == NULL){
+		ERROR("q_init failed")
+		TRACE_OUT
+		return -1;
+	}
+	if ( Q_push(q, source) != Success ){
+		ERROR("q_init failed")
+		goto search_error;
+	}
+	while( !Q_isEmpty(q) ){
+		if ( Q_pop(q, &nodeId) != Success ){
+			FATAL("Error in search algorithm (Q1). Probable software error.")
+			goto search_error;
+		}
+		if ( nodeId == target ){
+			LOG("Found path")
+			goto search_found;
+		}
+		if ( ( list_node_ptr = getListHead(index, nodeId) ) == NULL ){
+			FATAL("Error in search algorithm (I). Probable software error.")
+			LOG("Unsafe search results")
+			continue;
+		}
+		list_node_p = getListNode(list_node_ptr);
+		do{
+			for ( i = 0; i < INIT; i++){
+				if ( list_node_p->neighbor[i] == -1 )break;
+				if ( Q_push(q, list_node_p->neighbor[i]) != Success){
+					FATAL("Error in search algorithm (Q2). Probable software error.")
+					goto search_error;
+				}
+//printf("neigh = %d\n", list_node_p->neighbor[i]);
+			}
+
+		}while(  (list_node_p = (list_node* )list_node_p->nextListNode) != NULL );
+		length++;
+	}
 	TRACE_OUT
-	return 1;
+	LOG("Path not found, normal execution")
+	Q_destroy(&q);
+	return -1;
+search_found:
+	TRACE_OUT
+	Q_destroy(&q);
+	return length;
+
+search_error:
+	Q_destroy(&q);
+	TRACE_OUT
+	return -1;
 }
 
 
@@ -471,12 +534,10 @@ int existPathInGraph(Graph graph, uint32_t source, uint32_t target){
  *           main_thread is blocked, until result
  *
  */
-int existPathInGraphBD(Graph graph, uint32_t source, uint32_t target){
+int existPathInGraph(Graph graph, uint32_t source, uint32_t target){
 	TRACE_IN
-	printf("BD: %u, T: %u\n", source, target );
 	TRACE_OUT
-	return 1;
-
+	return l_existPathInGraph(graph->nodeIndexOut, source, target);
 }
 
 
