@@ -20,8 +20,10 @@ int main(int argc , char *argv[]){
 		SET_TEST_MODE(0);
 	else SET_TEST_MODE(1);
 
-	/* Run test cases */
-	PRINT_RESULT( test_suite_0() )
+	/* Run suite test cases */
+	PRINT_RESULT( test_suite_1() )
+	PRINT_RESULT( test_suite_2() )
+	PRINT_RESULT( test_suite_3() )
 
 	/* evaluate result */
 	return evaluate();

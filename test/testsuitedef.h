@@ -1,7 +1,12 @@
 #ifndef __testsuitedef
 #define __testsuitedef
 
-int test_suite_0();
+#define AND &&
+#define OR  ||
+
+int test_suite_1();
+int test_suite_2();
+int test_suite_3();
 
 
 #endif

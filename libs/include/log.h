@@ -30,4 +30,12 @@
 #   define TRACE_OUT ;
 #endif
 
+#if DEBUG_LEVEL == 3
+#	define LOG(str) \
+	printf("LOG (File:%s, Line:%d [%s]) : %s\n",  __FILE__, __LINE__, __func__, (str) );
+#else
+#	define LOG(str) ;
+#endif
+
+
 #endif

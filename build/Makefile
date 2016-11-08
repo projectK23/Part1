@@ -15,13 +15,13 @@ MKDIR_P=mkdir -p
 OUTDIR=../obj/
 
 GCC=gcc
-GCCFLAGS=-Wall -O3 -o
+GCCFLAGS=-Wall -O1 -g -o
 
 CIN=-I ../include
 
 #libraries included folders
 CINLIB= \
-	-I ../libs/log/include
+	-I ../libs/include
 
 #debug level
 ifeq ($(D),error)
@@ -55,8 +55,16 @@ UNI_O= $(OUTDIR)uni.o
 MAIN_C=$(ROOTSRC)main/main.c
 MAIN_O=$(OUTDIR)main.o
 
-SRC_C=$(ROOTSRC)my_src/src.c
-SRC_O=$(OUTDIR)src.o
+SRC_BUFFER_C=$(ROOTSRC)my_src/Buffer.c
+SRC_BUFFER_O=$(OUTDIR)Buffer.o
+
+SRC_NODE_I_C=$(ROOTSRC)my_src/NodeIndex.c
+SRC_NODE_I_O=$(OUTDIR)NodeIndex.o
+
+SRC_GRAPH_C= $(ROOTSRC)my_src/graph_operations.c
+SRC_GRAPH_O= $(OUTDIR)graph_operations.o
+
+SRC_O=$(SRC_BUFFER_O) $(SRC_NODE_I_O) $(SRC_GRAPH_O)
 
 OBJS=$(MAIN_O) $(SRC_O) $(TEST_O)
 
@@ -77,8 +85,8 @@ run: $(EXE)
 
 memtest: directories test $(EXE) $(EXETEST) 
 	rm -f $(TEST_O)
-	valgrind --leak-check=yes ./$(EXE)
-	valgrind --leak-check=yes ./$(EXETEST) reg
+	valgrind --leak-check=yes -v --dsymutil=yes ./$(EXE)
+	valgrind --leak-check=yes -v --dsymutil=yes ./$(EXETEST) reg
 
 
 test_all: test $(EXETEST)
@@ -102,8 +110,14 @@ $(EXETEST): $(TEST_O) $(UNI_O) $(SRC_O)
 $(MAIN_O): $(MAIN_C)
 	$(GCC) $(C99) -c $(MAIN_C) -o $(MAIN_O) $(CIN) $(CINLIB) $(DFLAGS)
 
-$(SRC_O): $(SRC_C)
-	$(GCC) $(C99) -c $(SRC_C) -o $(SRC_O) $(CIN) $(CINLIB) $(DFLAGS)
+$(SRC_BUFFER_O): $(SRC_BUFFER_C)
+	$(GCC) $(C99) -c $(SRC_BUFFER_C) -o $(SRC_BUFFER_O) $(CIN) $(CINLIB) $(DFLAGS)
+
+$(SRC_NODE_I_O): $(SRC_NODE_I_C)
+	$(GCC) $(C99) -c $(SRC_NODE_I_C) -o $(SRC_NODE_I_O) $(CIN) $(CINLIB) $(DFLAGS)
+
+$(SRC_GRAPH_O): $(SRC_GRAPH_C)
+	$(GCC) $(C99) -c $(SRC_GRAPH_C) -o $(SRC_GRAPH_O) $(CIN) $(CINLIB) $(DFLAGS)
 
 $(UNI_O): $(UNI_C)
 	$(GCC) -c $(UNI_C) -o $(UNI_O) $(CIN)
