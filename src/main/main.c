@@ -24,8 +24,8 @@
 	char fileB1[512];
 	char fileB2[512];
 #else
-	char *fileB1 = "../datasets/tiny/tinyGraph.txt";
-	char *fileB2 = "../datasets/tiny/tinyWorkload_FINAL.txt";
+	char *fileB1 = "../datasets/small/smallGraph.txt";
+	char *fileB2 = "../datasets/small/smallWorkload_FINAL.txt";
 #endif
 
 	char op[128];
@@ -102,7 +102,6 @@ OK_SUCCESS handleBlast1(){
 			LOG(" --> Command failed to execute")
 			continue;
 		}
-//printf("Insert :%d\n", dest);
 		ret = insertNodeInGraph(graph, dest);
 		switch ( ret ){
 			case Success:
@@ -134,7 +133,7 @@ OK_SUCCESS handleBlast1(){
 }
 
 /**
- * PURPOSE : Handle 1st blast
+ * PURPOSE : Handle 2nd blast
  * RETURNS : Status
  */
 #define __add__    'A'
@@ -152,7 +151,6 @@ OK_SUCCESS handleBlast2(){
 
 	LOG("Read data from blast2 file")
 	while( fgets(op, 127, fp) != NULL ){
-		printf("op = %s", op);
 		if ( op[0] == 'F' || op[0] == 'f' ){
 			LOG("First burst completed!")
 			continue;
@@ -161,6 +159,9 @@ OK_SUCCESS handleBlast2(){
 		switch( action ){
 
 			case __add__:
+#if DEBUG_LEVEL != 0
+				printf("%s", op);
+#endif
 				if ( ( ret = insertNodeInGraph(graph, source) ) != Success ){
 					if ( ret != Request_data_found){
 						ERROR("Source node failed to get in graph. Ignore action")
@@ -186,7 +187,11 @@ OK_SUCCESS handleBlast2(){
 				break;
 
 			case __querry__:
-				printf("%d", existPathInGraph(graph, source, dest) );
+#if DEBUG_LEVEL != 0
+				op[strlen(op)-1] = '\0';
+				printf("%s\t:--> ", op);
+#endif
+				printf("%d\n", existPathInGraph(graph, source, dest) );
 				break;
 
 			default:

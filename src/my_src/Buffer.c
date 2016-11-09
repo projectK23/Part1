@@ -29,20 +29,16 @@ Buffer* createBuffer()
 		TRACE_OUT
 		return NULL;
 	}
-	bf->max_size = INIT*sizeof(list_node);
-	if ( ( bf->list_nodes = malloc( bf->max_size ) ) == NULL ){
+	bf->max_size = INIT;
+	if ( ( bf->list_nodes = malloc( bf->max_size *sizeof(list_node)) ) == NULL ){
 		FATAL("Malloc at list  failed. Free buffer structure")
 		free(bf);
 		TRACE_OUT
 		return NULL;
 	}
 	LOG("Initialize structure")
-	memset(bf->list_nodes, 0xFF, bf->max_size );
-	int i = 0;
-	for ( i = 0; i < INIT; i++){
-		((list_node*)(bf->list_nodes) + i )->nextListNode = NULL;
-	}
-	bf->end = bf->list_nodes;
+	memset(bf->list_nodes, 0xFF, bf->max_size*sizeof(list_node) );
+	bf->end = 0;
 	TRACE_OUT
     return bf;
 }
@@ -56,60 +52,33 @@ Buffer* createBuffer()
  *           This should be distinguished by application code, so as to update list
  */
 
-#define LAST_PTR       (buffer->end)
-#define START_PTR      (buffer->list_nodes)
-
 ptr allocNewNode(Buffer* buffer)
 {
 	TRACE_IN
 	ptr ret_val;
-	if ( ( LAST_PTR + sizeof(list_node) - START_PTR )  > buffer->max_size ){
+	if ( buffer->end == buffer->max_size ){
 		LOG("Double size buffer")
-		ptr new_ptr;
-		if ( ( new_ptr = realloc(START_PTR, 2*buffer->max_size) ) == NULL ){
+		list_node *new_ptr;
+		if ( ( new_ptr = realloc(buffer->list_nodes, (2*buffer->max_size)*sizeof(list_node) ) ) == NULL ){
 			ERROR("Realloc failed")
 			TRACE_OUT
-			return NULL;
+			return -1;
 		}else{
 			LOG("Buffer was successfully doubled")
-			memset(new_ptr + buffer->max_size, 0xFF, buffer->max_size);
+			memset(new_ptr + buffer->max_size, 0xFF, buffer->max_size*sizeof(list_node));
 			buffer->max_size *= 2;
-			LAST_PTR += (new_ptr - START_PTR);
-			START_PTR = new_ptr;
-			ret_val = LAST_PTR;
-			LAST_PTR += sizeof(list_node);
-			new_ptr += buffer->max_size/2;
-			for ( ;new_ptr < buffer->list_nodes + buffer->max_size; new_ptr += sizeof(list_node)){
-				((list_node*)new_ptr)->nextListNode = NULL;
-			}
+			buffer->list_nodes = new_ptr;
+			ret_val = buffer->end;
+			buffer->end += 1;
+			uint32_t pos;
 		}
 	}else{
-		ret_val = LAST_PTR;
-		LAST_PTR += sizeof(list_node);
+		ret_val = buffer->end;
+		buffer->end += 1;
 	}
 	LOG("Initialize last pointer")
 	TRACE_OUT
 	return ret_val;
-}
-
-#undef LAST_PTR
-#undef START_PTR
-
-/***************************************************
- * Purpose : Updates buffer indexes
- * IN      : Buffer, bias
- * Returns : n/a
- * Comment : Dangerous !!! :@
- */
-void updateBufferIndex(Buffer *buf, long bias){
-	TRACE_IN
-	ptr node;
-	for( node = buf->list_nodes; node < buf->list_nodes+buf->max_size/2; node+=sizeof(list_node)){
-		if ( ((list_node*)node)->nextListNode != NULL ){
-			((list_node*)node)->nextListNode += bias;
-		}
-	}
-	TRACE_OUT
 }
 
 /***************************************************
@@ -119,7 +88,8 @@ void updateBufferIndex(Buffer *buf, long bias){
  * Comment : Dangerous !!! :@
  */
 void freeLastNode(Buffer *buf){
-	buf->end -= sizeof(list_node);
+	buf->end -= 1;
+	memset(buf->end + buf->list_nodes, 0xff, sizeof(list_node));
 }
 
 /*******************************************************************************
@@ -129,10 +99,10 @@ void freeLastNode(Buffer *buf){
  * Comment : Should be used with construct node
  */
 
-list_node* getListNode(ptr node){
+list_node* getListNode(Buffer *buf, ptr node){
 	TRACE_IN
 	TRACE_OUT
-	return (list_node*)node;
+	return buf->list_nodes + node;
 }
 
 
@@ -158,7 +128,6 @@ OK_SUCCESS destroyBuffer(Buffer* buffer)
 		return Unknown_Failure;
 	}
 	memset(buffer->list_nodes, 0, buffer->max_size);
-	buffer->end = NULL;
 	free(buffer->list_nodes);
 	buffer->list_nodes = NULL;
 	free(buffer);

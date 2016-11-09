@@ -15,8 +15,6 @@ typedef struct _Sgraph{
 	NodeIndex *nodeIndexInc;
 	Buffer *bufferOut;
 	Buffer *bufferInc;
-	ptr startBufferOut;
-	ptr startBufferInc;
 }graph_t;
 
 /******************************************************

@@ -84,10 +84,10 @@ endif
 
 directories: $(OUTDIR)
 
-default: $(EXE)
+default: directories $(EXE)
 
-run: $(EXE)
-	./$(EXE)
+run: directories $(EXE)
+	./$(EXE) ../datasets/small/smallGraph.txt ../datasets/small/smallWorkload_FINAL.txt
 
 memtest: directories test $(EXE) $(EXETEST) 
 	rm -f $(TEST_O)

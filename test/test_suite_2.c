@@ -45,13 +45,12 @@ void clear_test_suite_2(){
 Boolean TestCaseNodeIndex1(){
 	int i;
 	for ( i = 0; i < INIT; i++){
-		if (  !( insertNode(index_p, i+2, i+2, False) == Success
-			AND (index_p->start + (i+2)*sizeof(Index_node) ) == index_p->end ) ){
+		if (  !( insertNode(index_p, i+2, i+2, False) == Success AND i+2 == index_p->end ) ){
 			return False;
 		}
 
 	}
-	return index_p->size == 2*INIT*sizeof(Index_node);
+	return index_p->size == 2*INIT;
 }
 
 /**
@@ -61,11 +60,11 @@ Boolean TestCaseNodeIndex1(){
 Boolean TestCaseNodeIndex2(){
 	int i;
 	for ( i = 0; i < INIT + 1; i++){
-		if (  insertNode(index_p, i+1, (void *)i+1, False) != Request_data_found ){
+		if (  insertNode(index_p, i+1, i+1, False) != Request_data_found ){
 			return False;
 		}
 	}
-	return index_p->end == index_p->start + (INIT+1)*sizeof(Index_node);
+	return index_p->end == INIT+1;
 }
 
 /**
@@ -75,7 +74,7 @@ Boolean TestCaseNodeIndex2(){
 Boolean TestCaseNodeIndex3(){
 	int i;
 	for ( i = 1; i < INIT + 2; i++){
-		if (  getListHead(index_p, (void *)i) != i ){
+		if (  getListHead(index_p, i) != i ){
 			return False;
 		}
 	}
@@ -89,7 +88,7 @@ Boolean TestCaseNodeIndex3(){
 Boolean TestCaseNodeIndex4(){
 	int i;
 	for ( i = 1; i < INIT + 2; i++){
-		if (  getListHead(index_p, (void *)(i + 2*INIT) ) != NULL ){
+		if (  getListHead(index_p, i + 2*INIT ) != -1 ){
 			return False;
 		}
 	}
@@ -107,13 +106,13 @@ Boolean TestCaseNodeIndex4(){
 int test_suite_2(){
 	init_test_suite_2();
 	TEST(testnum++, "createNodeIndex returns NOT NULL", ( index_p = createNodeIndex() ) != NULL
-			AND index_p->size == INIT*sizeof(Index_node) );
-	TEST(testnum++, "insert one Node in Node index", insertNode(index_p, 1, (void *)1, False) == Success
-			AND index_p->end == index_p->start+sizeof(Index_node) );
+			AND index_p->size == INIT AND index_p->end == 0 );
+	TEST(testnum++, "insert one Node in Node index", insertNode(index_p, 1, 1, False) == Success
+			AND index_p->end == 1 );
 	TEST(testnum++, "Insert INIT more nodes. Index will double it's size.", TestCaseNodeIndex1() );
 	TEST(testnum++, "Insert already existing nodes. Index size will remain the same.", TestCaseNodeIndex2() );
 	TEST(testnum++, "Search with nodeId gives correct pointer. .", TestCaseNodeIndex3() );
-	TEST(testnum++, "Search not existing nodeId returns NULL pointer. .", TestCaseNodeIndex4() );
+	TEST(testnum++, "Search not existing nodeId returns 0xffffffff. .", TestCaseNodeIndex4() );
 	TEST(testnum++, "Destroy node index clears everything", destroyNodeIndex(index_p) == Success );
 	clear_test_suite_2();
 	return suite_eval();

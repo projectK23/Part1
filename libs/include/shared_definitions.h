@@ -14,7 +14,7 @@ typedef unsigned long  uint64_t;
 
 #define WORKERS 2
 
-typedef void * ptr;
+typedef unsigned int ptr;
 
 
 #endif

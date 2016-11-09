@@ -84,7 +84,7 @@ OK_SUCCESS Q_push(Q q, data_t d){
 		TRACE_OUT
 		return Unknown_Failure;
 	}
-	ptr node = malloc(sizeof(node_t) );
+	void * node = malloc(sizeof(node_t) );
 	if (node == NULL){
 		ERROR("Uninitialized queue")
 		TRACE_OUT

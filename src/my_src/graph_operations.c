@@ -40,9 +40,6 @@ Graph graphCreate(){
 		graph->bufferInc = NULL;
 		graph->nodeIndexOut = NULL;
 		graph->nodeIndexInc = NULL;
-		graph->startBufferOut = NULL;
-		graph->startBufferInc = NULL;
-
 	}
 	if ( ( graph->nodeIndexOut = createNodeIndex() ) == NULL){
 		FATAL("Index can not be initialized.")
@@ -57,14 +54,12 @@ Graph graphCreate(){
 		goto destroy_members;
 	}else{
 		LOG("BufferOut successfully created")
-		graph->startBufferOut = graph->bufferOut->list_nodes;
 	}
 	if ( ( graph->bufferInc = createBuffer() ) == NULL ){
 		FATAL("Buffer could not be initialized")
 		goto destroy_members;
 	}else{
 		LOG("BufferInc successfully created")
-		graph->startBufferInc = graph->bufferInc->list_nodes;
 	}
 	TRACE_OUT
 	return graph;
@@ -88,65 +83,46 @@ void printGraph(Graph graph){
 	int i;
 	printf("-------- GRAPH ---------\n");
 	printf("graph = %ld\n", (long)graph);
-	printf("bufOut(start: %ld, end: %ld, size :%u)\n",
-			(long)graph->bufferOut->list_nodes, (long)graph->bufferOut->end, graph->bufferOut->max_size);
-	for(node = graph->bufferOut->list_nodes; node < graph->bufferOut->end; node += sizeof(list_node)){
-		printf(" (0x%x) ", node);
+	printf("bufOut(start: 0x%x, end: 0x%x, size :%u)\n",
+			graph->bufferOut->list_nodes,
+			graph->bufferOut->list_nodes + graph->bufferOut->end,
+			graph->bufferOut->max_size);
+	for(node = 0; node < graph->bufferOut->end; node ++){
+		printf(" (%d) ", node);
 		for ( i = 0; i < INIT; i++){
-				printf("0x%x ", ((list_node*)node)->neighbor[i] );
+				printf("%u ", (graph->bufferOut->list_nodes + node)->neighbor[i] );
 		}
-		printf(" | 0x%x | \n",  ((list_node*)node)->nextListNode);
+		printf(" | %ld |\n",  (graph->bufferOut->list_nodes + node)->nextListNode);
 	}
-	printf("NodeIndexOut (start: 0x%x, end: 0x%x, size :%u)\n",
-			graph->nodeIndexOut->start, graph->nodeIndexOut->end, graph->nodeIndexOut->size);
-	for ( node = graph->nodeIndexOut->start; node < graph->nodeIndexOut->end; node += sizeof(Index_node)){
-		printf(" (0x%x) : 0x%x 0x%x, ", node, ((Index_node*)node)->Id, ((Index_node*)node)->posAtBuff);
+	printf("NodeIndexOut :\n");
+	for ( node = 0; node < graph->nodeIndexOut->end; node++){
+		printf(" (%d) : %d - %ld, ",
+				node,
+				(graph->nodeIndexOut->start + node)->Id,
+				(graph->nodeIndexOut->start + node)->posAtBuff);
 	}
 	printf("\n\n");
-	printf("bufInc(start: 0x%x, end: 0x%x, size :%u\n",
-			graph->bufferInc->list_nodes, graph->bufferInc->end, graph->bufferInc->max_size);
-	for(node = graph->bufferInc->list_nodes; node < graph->bufferInc->end; node += sizeof(list_node)){
-		printf(" (0x%x) ", node);
+	printf("bufInc(start: 0x%x, end: 0x%x, size :%u)\n",
+			graph->bufferInc->list_nodes,
+			graph->bufferInc->list_nodes + graph->bufferOut->end,
+			graph->bufferInc->max_size);
+	for(node = 0; node < graph->bufferInc->end; node ++){
+		printf(" (%d) ", node);
 		for ( i = 0; i < INIT; i++){
-				printf("0x%x ", ((list_node*)node)->neighbor[i] );
+				printf("%u ", (graph->bufferInc->list_nodes + node)->neighbor[i] );
 		}
-		printf(" | 0x%x | \n",  ((list_node*)node)->nextListNode);
+		printf(" | %ld |\n",  (graph->bufferInc->list_nodes + node)->nextListNode);
 	}
-	printf("NodeIndexInc (start: 0x%x, end: 0x%x, size :%u)\n",
-			(long)graph->nodeIndexInc->start, (long)graph->nodeIndexInc->end, graph->nodeIndexInc->size);
-	for ( node = graph->nodeIndexInc->start; node < graph->nodeIndexInc->end; node += sizeof(Index_node)){
-		printf(" (0x%x) : 0x%x 0x%x, ", node, ((Index_node*)node)->Id, ((Index_node*)node)->posAtBuff);
+	printf("NodeIndexInc :\n");
+	for ( node = 0; node < graph->nodeIndexInc->end; node++){
+		printf(" (%d) : %d - %ld, ",
+				node,
+				(graph->nodeIndexInc->start + node)->Id,
+				(graph->nodeIndexInc->start + node)->posAtBuff);
 	}
 
 	printf("\n------------------------\n\n");
 
-}
-
-/******************************************************
- * PURPOSE : Update graph pointers
- * IN      : Pointer to graph
- * OUT     : n/a
- * COMMENTS: Inside a function, so as to void code replication
- */
-void updateGraphPointers(Graph graph, Boolean Out){
-	TRACE_IN
-	if ( Out){
-		if ( graph->startBufferOut != graph->bufferOut->list_nodes){
-			LOG("Add bias in nodeIndexOut and bufferOut")
-			updateIndex(graph->nodeIndexOut, graph->bufferOut->list_nodes - graph->startBufferOut);
-			updateBufferIndex(graph->bufferOut, graph->bufferOut->list_nodes - graph->startBufferOut);
-			graph->startBufferOut = graph->bufferOut->list_nodes;
-		}
-		TRACE_OUT
-	}else{
-		if ( graph->startBufferOut != graph->bufferOut->list_nodes){
-			LOG("Add bias in nodeIndexOut and bufferOut")
-			updateIndex(graph->nodeIndexOut, graph->bufferOut->list_nodes - graph->startBufferOut);
-			updateBufferIndex(graph->bufferOut, graph->bufferOut->list_nodes - graph->startBufferOut);
-			graph->startBufferOut = graph->bufferOut->list_nodes;
-		}
-		TRACE_OUT
-	}
 }
 
 
@@ -183,14 +159,12 @@ OK_SUCCESS graphDestroy(Graph *graph){
 		success = False;
 	}
 	(*graph)->bufferOut = NULL;
-	(*graph)->startBufferOut = NULL;
 
 	if ( destroyBuffer( (*graph)->bufferInc) != Success ){
 		ERROR("Resources of bufferInc in graph was not released successfully")
 		success = False;
 	}
 	(*graph)->bufferInc = NULL;
-	(*graph)->startBufferOut = NULL;
 
 	free( *graph );
 	*graph = NULL;
@@ -201,68 +175,140 @@ OK_SUCCESS graphDestroy(Graph *graph){
 
 
 /******************************************************
- * PURPOSE : Insert a node in graph
- * IN      : NodeIndex *nodeIndex, uint32_t
+ * PURPOSE : Insert a node in sub graph
+ * IN      : NodeIndex *, Buffer *, uint32_t
  * OUT     : Result cause
- * COMMENTS: n/a
+ * COMMENTS: Local, created for simplicity
  */
-OK_SUCCESS insertNodeInGraph(Graph graph, uint32_t nodeId){
+
+OK_SUCCESS insertNodeInBuff(NodeIndex * i, Buffer * b, uint32_t nodeId){
 	TRACE_IN
 	ptr new_node;
-
-	LOG("Insert Outgoing")
-	if ( getListHead(graph->nodeIndexOut, nodeId) == NULL){
+	if ( i == NULL || b == NULL){
+		ERROR("Null pointers for graph given")
+		TRACE_OUT
+		return Unknown_Failure;
+	}
+	if ( getListHead(i, nodeId) == -1){
 		LOG("Node was not inside nodeIndexOut")
-		if ( (new_node = allocNewNode(graph->bufferOut) ) == NULL ){
+		if ( (new_node = allocNewNode(b) ) == -1 ){
 			ERROR("Allocation in buffer failed");
 			TRACE_OUT
 			return Unknown_Failure;
 		}else{
 			LOG("Allocation in buffer was successful")
-			updateGraphPointers(graph, True);
-			if ( insertNode(graph->nodeIndexOut, nodeId, new_node, True) == Memory_Failure){
+			if ( insertNode(i, nodeId, new_node, True) == Memory_Failure){
 				ERROR("Unable to insert node in NodeIndex. Revert last insertion in buffer")
-				freeLastNode(graph->bufferOut);
+				freeLastNode(b);
 				TRACE_OUT
 				return Memory_Failure;
 			}
 		}
 	}else{
-		LOG("Node already exists in graph")
-		if ( getListHead(graph->nodeIndexInc, nodeId) == NULL){
-			LOG("..but does not exist in nodeIndexInc list")
-			FATAL("Error in construction of graph!!");
-			TRACE_OUT
-			return Unknown_Failure;
-		}
 		LOG("Node exists in graph")
 		TRACE_OUT
 		return Request_data_found;
 	}
 
-	LOG("Insert Incoming")
-	if ( getListHead(graph->nodeIndexInc, nodeId) == NULL){
-		LOG("Node was not inside nodeIndexInc")
-		if ( (new_node = allocNewNode(graph->bufferInc) ) == NULL ){
-			ERROR("Allocation in buffer failed");
-			TRACE_OUT
+}
+
+/******************************************************
+ * PURPOSE : Insert an edge in sub graph
+ * IN      : NodeIndex *, Buffer *, uin32_t nodeId
+ * OUT     : Result cause
+ * COMMENTS: Local, created for simplicity
+ */
+
+OK_SUCCESS insertEdgeInBuff(NodeIndex * index, Buffer * buffer, uint32_t source, uint32_t target){
+	TRACE_IN
+	ptr edgeList_p;
+	OK_SUCCESS ret;
+	LOG("Get positions in buffer. Check that graph is ok. If not try to recover graph")
+	if ( ( edgeList_p = getListHead(index, source) ) == -1){
+		ERROR("Node was not inside nodeIndex")
+		printf("Error for sourceId= %u\n", source);
+		LOG("Insert nodeId in buffer for recovery")
+		if ( insertNodeInBuff(index, buffer, source) != Success ){
+			ERROR("Failed to insert edge")
 			return Unknown_Failure;
-		}else{
-			LOG("Allocation in buffer was successful")
-			updateGraphPointers(graph, False);
-			if ( insertNode(graph->nodeIndexInc, nodeId, new_node, True) == Memory_Failure){
-				ERROR("Unable to insert node in NodeIndex. Revert last insertion in buffer")
-				freeLastNode(graph->bufferInc);
+		}
+	}
+
+	list_node *ln_p = getListNode(buffer, edgeList_p);
+	int i;
+	Boolean inside = False;
+
+	LOG("Add edge in list if does not exist already")
+	while (1){
+		for( i = 0; i < INIT; i++){
+			if ( ln_p->neighbor[i] == 0xffffffff){
+				LOG("Empty room exists in last batch")
+				ln_p->neighbor[i] = target;
+				inside = True;
+				break;
+			}else if ( ln_p->neighbor[i] == target ){
+				LOG("Edge already exists in graph")
+				inside = True;
+				break;
+			}
+		}
+		if ( inside )break;
+		if ( ln_p->nextListNode == -1 ){
+			LOG("Allocate space in buffer")
+			if ( (ln_p->nextListNode = allocNewNode(buffer) ) != -1 ){
+				LOG("Space successfully allocated")
+			}else{
+				ERROR("Failed to allocate space for list batch")
 				TRACE_OUT
 				return Memory_Failure;
 			}
 		}
-	}else{
-		ERROR("Node already existed in list with the incoming edges, but inserted in the list with the outgoing")
-		printf("Node with Id =%u exists in the incoming nodeIndex, but not in outgoing.", nodeId);
-		LOG("Node exists in graph")
-		TRACE_OUT
-		return Request_data_found;
+		ln_p = getListNode(buffer, ln_p->nextListNode);
+	}
+	TRACE_OUT
+	return Success;
+}
+
+/******************************************************
+ * PURPOSE : Insert a node in graph
+ * IN      : Graph, nodeId
+ * OUT     : Result cause
+ * COMMENTS: n/a
+ */
+OK_SUCCESS insertNodeInGraph(Graph graph, uint32_t nodeId){
+	TRACE_IN
+	OK_SUCCESS ret = insertNodeInBuff(graph->nodeIndexOut,graph->bufferOut, nodeId);
+	switch ( ret ){
+		case Success:
+			LOG("Node inserted in out")
+			break;
+		case Request_data_found:
+			LOG("Node existed in out")
+			break;
+		default:
+			ERROR("Failed to insert data in Out")
+			TRACE_OUT
+			return Unknown_Failure;
+	}
+
+	TRACE_IN
+	switch ( insertNodeInBuff(graph->nodeIndexInc,graph->bufferInc, nodeId) ){
+		case Success:
+			if ( ret == Request_data_found){
+				ERROR("Possible error: Node existed in Out buffer but not in Inc")
+			}
+			LOG("Node inserted in inc")
+			break;
+		case Request_data_found:
+			if ( ret == Success){
+				ERROR("Possible error: Node existed in Inc buffer but not in Out")
+			}
+			LOG("Node existed in inc")
+			break;
+		default:
+			ERROR("Failed to insert data in Inc")
+			TRACE_OUT
+			return Unknown_Failure;
 	}
 
 	TRACE_OUT
@@ -277,179 +323,21 @@ OK_SUCCESS insertNodeInGraph(Graph graph, uint32_t nodeId){
  */
 OK_SUCCESS insertEdgeInGraph(Graph graph, uint32_t sourceId, uint32_t destId){
 	TRACE_IN
-	ptr sourceEdgeList, destEdgeList, new_node;
-	LOG("Get positions in buffer. Check that graph is ok. If not try to recover graph")
-	if ( ( sourceEdgeList = getListHead(graph->nodeIndexOut, sourceId) ) == NULL){
-		ERROR("Node was not inside nodeIndexOut")
-		printf("Error for sourceId= %u\n", sourceId);
-		LOG("Insert sourceId in graph for recovery")
-		if ( getListHead(graph->nodeIndexInc, sourceId) == NULL){
-			ERROR("Node does not exist in graph.")
-			if ( insertNodeInGraph(graph, sourceId) != Success ){
-				ERROR("Graph failed to recover");
-				TRACE_OUT
-				return Unknown_Failure;
-			}else if ( ( sourceEdgeList = getListHead(graph->nodeIndexOut, sourceId) ) == NULL ){
-				TRACE_OUT
-				return Unknown_Failure;
-			}
-		}else{
-			ERROR("sourceId node exists in list with incoming edges")
-			if ( (new_node = allocNewNode(graph->bufferOut) ) == NULL ){
-				ERROR("Allocation in buffer failed");
-				TRACE_OUT
-				return Unknown_Failure;
-			}else{
-				LOG("Allocation in buffer was successful")
-				updateGraphPointers(graph, True);
-				if ( insertNode(graph->nodeIndexOut, sourceId, new_node, True) == Memory_Failure){
-					ERROR("Unable to insert node in NodeIndex. Revert last insertion in buffer")
-					freeLastNode(graph->bufferOut);
-					TRACE_OUT
-					return Memory_Failure;
-				}
-			}
-		}
-	}else{
-		LOG("Node exists in nodeIndexOut")
-		if ( getListHead(graph->nodeIndexInc, sourceId) == NULL){
-			ERROR("Node does not exist in index for incoming nodes. Try to recover")
-			if ( (new_node = allocNewNode(graph->bufferInc) ) == NULL ){
-				ERROR("Allocation in buffer failed");
-				TRACE_OUT
-				return Unknown_Failure;
-			}else{
-				LOG("Allocation in buffer was successful")
-				updateGraphPointers(graph, False);
-				if ( insertNode(graph->nodeIndexInc, sourceId, new_node, True) == Memory_Failure){
-					ERROR("Unable to insert node in NodeIndex. Revert last insertion in buffer")
-					freeLastNode(graph->bufferInc);
-					TRACE_OUT
-					return Memory_Failure;
-				}
-			}
-		}
+	if ( insertEdgeInBuff(graph->nodeIndexOut, graph->bufferOut, sourceId, destId) != Success ){
+		ERROR("Edge was not inserted in graph");
+		TRACE_OUT
+		return Unknown_Failure;
 	}
-
-
-	if ( ( destEdgeList = getListHead(graph->nodeIndexInc, destId) ) == NULL){
-		ERROR("Node was not inside nodeIndexInc")
-		printf("Error for destId= %u\n", destId);
-		LOG("Insert destId in graph for recovery")
-		if ( getListHead(graph->nodeIndexOut, destId) == NULL){
-			ERROR("Node does not exist at all in graph.")
-			if ( insertNodeInGraph(graph, sourceId) != Success ){
-				ERROR("Graph failed to recover");
-				TRACE_OUT
-				return Unknown_Failure;
-			}else if ( ( destEdgeList = getListHead(graph->nodeIndexOut, sourceId) ) == NULL ){
-				TRACE_OUT
-				return Unknown_Failure;
-			}
-		}else{
-			ERROR("destId node exists in list with outgoing edges")
-			if ( (new_node = allocNewNode(graph->bufferInc) ) == NULL ){
-				ERROR("Allocation in buffer failed");
-				TRACE_OUT
-				return Unknown_Failure;
-			}else{
-				LOG("Allocation in buffer was successful")
-				updateGraphPointers(graph, False);
-				if ( insertNode(graph->nodeIndexInc, destId, new_node, True) == Memory_Failure){
-					ERROR("Unable to insert node in NodeIndex. Revert last insertion in buffer")
-					freeLastNode(graph->bufferInc);
-					TRACE_OUT
-					return Memory_Failure;
-				}
-			}
-		}
-	}else{
-		LOG("Node exists in nodeIndexInc")
-		if ( getListHead(graph->nodeIndexOut, destId) == NULL){
-			ERROR("Node does not exist in index for outgoing nodes. Try to recover")
-			if ( (new_node = allocNewNode(graph->bufferOut) ) == NULL ){
-				ERROR("Allocation in buffer failed");
-				TRACE_OUT
-				return Unknown_Failure;
-			}else{
-				LOG("Allocation in buffer was successful")
-				updateGraphPointers(graph, True);
-				if ( insertNode(graph->nodeIndexOut, destId, new_node, True) == Memory_Failure){
-					ERROR("Unable to insert node in NodeIndex. Revert last insertion in buffer")
-					freeLastNode(graph->bufferOut);
-					TRACE_OUT
-					return Memory_Failure;
-				}
-			}
-		}
+	if ( insertEdgeInBuff(graph->nodeIndexInc, graph->bufferInc, destId, sourceId) != Success ){
+		ERROR("Edge was not inserted in graph");
+		TRACE_OUT
+		return Unknown_Failure;
 	}
-
-#if DEBUG_LEVEL == 3
+	TRACE_OUT
+#if DEBUG_LEVEL > 1
 	printGraph(graph);
 #endif
 
-
-	list_node *lnOut, *lnInc;
-	int i;
-	Boolean hasRoom;
-
-	LOG("Go in last batch for outgoing edges")
-	lnOut = getListNode(sourceEdgeList);
-	while(lnOut->nextListNode != NULL){
-		lnOut = lnOut->nextListNode;
-	}
-	hasRoom = False;
-	for( i = 0; i < INIT; i++){
-		if ( lnOut->neighbor[i] == 0xffffffff){
-			LOG("Empty room exists in last batch")
-			lnOut->neighbor[i] = destId;
-			hasRoom = True;
-			break;
-		}
-	}
-	if ( !hasRoom ){
-		LOG("Allocate batch in bufferOut")
-		if ( (lnOut->nextListNode = allocNewNode(graph->bufferOut) ) != NULL ){
-			updateGraphPointers(graph, True);
-			lnOut = lnOut->nextListNode;
-			lnOut->neighbor[0] = destId;
-		}else{
-			ERROR("Failed to allocate space for list batch")
-			TRACE_OUT
-			return Memory_Failure;
-		}
-	}
-	LOG("Go in last batch for outgoing edges")
-	lnInc = getListNode(destEdgeList);
-
-printf("lnInc = 0x%x\n", lnInc);
-
-	while(lnInc->nextListNode != NULL){
-		printf("--> 0x%x\n", lnInc->nextListNode);
-		lnInc = lnInc->nextListNode;
-	}
-	hasRoom = False;
-	for( i = 0; i < INIT; i++){
-		if ( lnInc->neighbor[i] == 0xffffffff){
-			LOG("Empty room exists in last batch")
-			hasRoom = True;
-			break;
-		}
-	}
-	if ( !hasRoom ){
-		LOG("Allocate batch in bufferInc")
-		if ( (lnInc->nextListNode = allocNewNode(graph->bufferInc) ) != NULL ){
-			updateGraphPointers(graph, False);
-			lnInc = lnInc->nextListNode;
-			i = 0;
-		}else{
-			ERROR("Failed to allocate space for list batch")
-			TRACE_OUT
-			return Memory_Failure;
-		}
-	}
-	lnInc->neighbor[i] = sourceId;
-	TRACE_OUT
 	return Success;
 }
 
@@ -457,8 +345,26 @@ printf("lnInc = 0x%x\n", lnInc);
 /***************************
  * LOCAL:
  */
-int l_existPathInGraph(NodeIndex *index, uint32_t source, uint32_t target){
+struct args{
+	NodeIndex *i;
+	Buffer *b;
+	uint32_t source;
+	uint32_t target;
+	Boolean theaded;
+};
+
+uint32_t visit;
+pthread_mutex_t lock;
+
+
+void *l_existPathInGraph(void *arg){
 	TRACE_IN
+	Boolean found;
+	Buffer *buf = ((struct args *)arg)->b;
+	NodeIndex *index = ((struct args *)arg)->i;
+	uint32_t source = ((struct args *)arg)->source;
+	uint32_t target = ((struct args *)arg)->target;
+	Boolean threaded = ((struct args *)arg)->theaded;
 	if ( source == target){
 		LOG("source == target in search")
 		TRACE_OUT
@@ -467,8 +373,8 @@ int l_existPathInGraph(NodeIndex *index, uint32_t source, uint32_t target){
 
 	Q q;
 	data_t node;
-	ptr list_node_ptr;
-	list_node *list_node_p;
+	ptr edgeList_p;
+	list_node *ln_p;
 	int i;
 
 	if ( ( q = Q_init() ) == NULL){
@@ -487,30 +393,40 @@ int l_existPathInGraph(NodeIndex *index, uint32_t source, uint32_t target){
 			FATAL("Error in search algorithm (Q1). Probable software error.")
 			goto search_error;
 		}
-		if ( node.nodeId == target ){
-			LOG("Found path")
-			goto search_found;
+		if ( threaded ){
+			pthread_mutex_lock(&lock);
+			if ( node.nodeId == visit )
+				found = True;
+			pthread_mutex_unlock(&lock);
+
+		}else{
+			if ( node.nodeId == target ){
+				LOG("Found path")
+				goto search_found;
+			}
 		}
-		if ( ( list_node_ptr = getListHead(index, node.nodeId) ) == NULL ){
+		if ( ( edgeList_p = getListHead(index, node.nodeId) ) == -1 ){
 			FATAL("Error in search algorithm (I). Probable software error.")
 			LOG("Unsafe search results")
 			continue;
 		}
-		list_node_p = getListNode(list_node_ptr);
+		ln_p = getListNode(buf, edgeList_p);
 		node.step += 1;
-		do{
+
+		while(1){
 			for ( i = 0; i < INIT; i++){
-				if ( list_node_p->neighbor[i] == -1 )break;
-				node.nodeId = list_node_p->neighbor[i];
+				if ( ln_p->neighbor[i] == -1 )break;
+				node.nodeId = ln_p->neighbor[i];
 				if ( Q_push(q, node) != Success){
 					FATAL("Error in search algorithm (Q2). Probable software error.")
 					goto search_error;
 				}
-//printf("neigh = %d\n", list_node_p->neighbor[i]);
 			}
-
-		}while(  (list_node_p = (list_node* )list_node_p->nextListNode) != NULL );
+			if ( ln_p->nextListNode == -1)break;
+			ln_p = getListNode(buf, ln_p->nextListNode);
+		}
 	}
+
 	TRACE_OUT
 	LOG("Path not found, normal execution")
 	Q_destroy(&q);
@@ -518,7 +434,7 @@ int l_existPathInGraph(NodeIndex *index, uint32_t source, uint32_t target){
 search_found:
 	TRACE_OUT
 	Q_destroy(&q);
-	return node.step;
+	return (void *)node.step;
 
 search_error:
 	Q_destroy(&q);
@@ -533,13 +449,51 @@ search_error:
  * OUT     : Result cause
  * COMMENTS: Path is not hold somewhere.
  *           2 posix threads do b-directional search
+ *           If thread functions fail, we fallback as single thread process
  *           main_thread is blocked, until result
- *
  */
+
 int existPathInGraph(Graph graph, uint32_t source, uint32_t target){
 	TRACE_IN
-	TRACE_OUT
-	return l_existPathInGraph(graph->nodeIndexOut, source, target);
-}
 
+	struct args A_out, A_inc;
+	A_out.i = graph->nodeIndexOut;
+	A_out.b = graph->bufferOut;
+	A_out.source = source;
+	A_out.target = target;
+/*	A_inc.i = graph->nodeIndexInc;
+	A_inc.b = graph->bufferInc;
+	A_inc.source = target;
+	A_inc.target = source;
+
+	if (pthread_mutex_init(&lock, NULL) != 0)
+    {
+        ERROR("Mutex init failed");
+        A_out.theaded = False;
+        TRACE_OUT;
+        return (int)l_existPathInGraph((void *)(&A_out) );
+    }
+	visit = -1;
+	pthread_t tid_Out, tid_Inc;
+	int ret_Out, ret_Inc;
+	A_out.theaded = True;
+	if ( ret_Out = pthread_create(&tid_Out, NULL, &l_existPathInGraph, &A_out) ){
+		ERROR("pthread_create failed\n");*/
+		A_out.theaded = False;
+		TRACE_OUT
+		return (int)l_existPathInGraph((void *)(&A_out) );
+	}
+/*	A_inc.theaded = True;
+	if ( ret_Inc = pthread_create(&tid_Inc, NULL, &l_existPathInGraph, &A_inc) ){
+		ERROR("pthread_create failed\n");
+		pthread_mutex_lock(&lock);
+		visit = target;
+		pthread_mutex_unlock(&lock);
+
+	}
+	pthread_mutex_destroy(&lock);
+	TRACE_OUT
+	return -1;
+}
+*/
 

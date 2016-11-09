@@ -8,18 +8,17 @@
 #include "../libs/include/result_codes.h"
 #include "../libs/include/shared_definitions.h"
 
-
-typedef struct _SNodeIndex{
-	uint32_t size;       //number of Index nodes
-	ptr start;           //pointer to first Index node
-	ptr end;             //pointer to last Index node
-} NodeIndex;
-
-
 typedef struct _SIndex_node{
 	uint32_t Id;              //node Id
 	ptr posAtBuff;            //pointer to listhead
 } Index_node;
+
+typedef struct _SNodeIndex{
+	uint32_t size;       //number of Index nodes
+	Index_node* start;   //pointer to first Index node
+	ptr end;             //pointer to last Index node
+} NodeIndex;
+
 
 /***************************************************
  * Purpose : creates an index list

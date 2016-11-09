@@ -46,12 +46,11 @@ void clear_test_suite_1(){
 Boolean TestCaseBuffer1(){
 	int i;
 	for ( i = 0; i < INIT; i++){
-		if (  !( ( new_node = allocNewNode(buf_p) ) != NULL
-			AND buf_p->list_nodes + (i+2)*sizeof(list_node)  == buf_p->end ) ){
+		if (  !( ( new_node = allocNewNode(buf_p) ) != 0 AND i+2  == buf_p->end ) ){
 			return False;
 		}
 	}
-	return buf_p->max_size == 2*INIT*sizeof(list_node);
+	return buf_p->max_size == 2*INIT;
 }
 
 
@@ -65,9 +64,9 @@ Boolean TestCaseBuffer1(){
 int test_suite_1(){
 	init_test_suite_1();
 	TEST(testnum++, "Create_buffer returns NOT NULL", ( buf_p = createBuffer() ) != NULL
-			AND buf_p->max_size == INIT*sizeof(list_node) AND buf_p->list_nodes == buf_p->end );
-	TEST(testnum++, "Allocate new node returns not NULL", ( new_node = allocNewNode(buf_p) ) != NULL
-			AND buf_p->list_nodes + sizeof(list_node)  == buf_p->end);
+			AND buf_p->max_size == INIT AND buf_p->end == 0);
+	TEST(testnum++, "Allocate new node returns not NULL", ( new_node = allocNewNode(buf_p) ) == 0
+			AND 1 == buf_p->end);
 	TEST(testnum++, "Buffer was doubled after more INIT insertions", TestCaseBuffer1() );
 	TEST(testnum++, "Buffer is destroyed", destroyBuffer( buf_p ) == Success );
 	clear_test_suite_1();

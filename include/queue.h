@@ -18,12 +18,12 @@ typedef struct _Sdata{
 
 typedef struct _Snode{
 	data_t data;
-	ptr p, n;
+	void * p, *n;
 }node_t;
 
 typedef struct _Squeue{
 	int size;
-	ptr first, last;
+	void * first, *last;
 }queue_t;
 
 typedef queue_t * Q;
