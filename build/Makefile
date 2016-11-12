@@ -91,7 +91,7 @@ run: directories $(EXE)
 
 memtest: directories test $(EXE) $(EXETEST) 
 	rm -f $(TEST_O)
-	valgrind --leak-check=yes -v --dsymutil=yes ./$(EXE)
+	valgrind --leak-check=yes -v --dsymutil=yes ./$(EXE) ../datasets/tiny/tinyGraph.txt ../datasets/tiny/tinyWorkload_FINAL.txt
 	valgrind --leak-check=yes -v --dsymutil=yes ./$(EXETEST) reg
 
 

@@ -209,7 +209,7 @@ OK_SUCCESS insertNodeInBuff(NodeIndex * i, Buffer * b, uint32_t nodeId){
 		TRACE_OUT
 		return Request_data_found;
 	}
-
+	return Success;
 }
 
 /******************************************************
@@ -254,9 +254,9 @@ OK_SUCCESS insertEdgeInBuff(NodeIndex * index, Buffer * buffer, uint32_t source,
 		}
 		if ( inside )break;
 		if ( ln_p->nextListNode == -1 ){
-			LOG("Allocate space in buffer")
 			if ( (ln_p->nextListNode = allocNewNode(buffer) ) != -1 ){
 				LOG("Space successfully allocated")
+				ln_p = getListNode(buffer, edgeList_p);
 			}else{
 				ERROR("Failed to allocate space for list batch")
 				TRACE_OUT
@@ -291,7 +291,6 @@ OK_SUCCESS insertNodeInGraph(Graph graph, uint32_t nodeId){
 			return Unknown_Failure;
 	}
 
-	TRACE_IN
 	switch ( insertNodeInBuff(graph->nodeIndexInc,graph->bufferInc, nodeId) ){
 		case Success:
 			if ( ret == Request_data_found){

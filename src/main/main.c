@@ -24,8 +24,8 @@
 	char fileB1[512];
 	char fileB2[512];
 #else
-	char *fileB1 = "../datasets/small/smallGraph.txt";
-	char *fileB2 = "../datasets/small/smallWorkload_FINAL.txt";
+	char *fileB1 = "../datasets/tiny/tinyGraph.txt";
+	char *fileB2 = "../datasets/tiny/tinyWorkload_FINAL.txt";
 #endif
 
 	char op[128];
@@ -72,7 +72,8 @@ OK_SUCCESS handleBlast1(){
 		TRACE_OUT
 		return File_does_not_exist;
 	}
-
+	unsigned short counter = 0;
+	unsigned int thousands = 0;
 	LOG("Read data from blast1 file")
 	while( fgets(op, 127, fp) != NULL ){
 		if ( strcmp(op, "s") == 0 || strcmp(op, "S") == 0 ){
@@ -80,7 +81,6 @@ OK_SUCCESS handleBlast1(){
 			break;
 		}
 		sscanf(op, "%d %d", &source, &dest);
-
 		ret = insertNodeInGraph(graph, source);
 		switch ( ret ){
 			case Success:
@@ -125,9 +125,15 @@ OK_SUCCESS handleBlast1(){
 		}
 
 		insertEdgeInGraph(graph, source, dest);
-
+		counter++;
+		if ( !(counter % 1000) ){
+			thousands ++;
+			counter = 0;
+			printf("%d thousands edges inserted in graph\n", thousands);
+		}
 	}
 	fclose(fp);
+	printf("%d edges inserted in graph\n", thousands * 1000 + counter);
 	TRACE_OUT
 	return Success;
 }
