@@ -96,10 +96,11 @@ void printGraph(Graph graph){
 	}
 	printf("NodeIndexOut :\n");
 	for ( node = 0; node < graph->nodeIndexOut->end; node++){
-		printf(" (%d) : %d - %ld, ",
+		printf(" (%d) : %d - %ld - %ld, ",
 				node,
 				(graph->nodeIndexOut->start + node)->Id,
-				(graph->nodeIndexOut->start + node)->posAtBuff);
+				(graph->nodeIndexOut->start + node)->posAtBuff,
+				(graph->nodeIndexOut->start + node)->lastBatch );
 	}
 	printf("\n\n");
 	printf("bufInc(start: 0x%x, end: 0x%x, size :%u)\n",
@@ -115,10 +116,11 @@ void printGraph(Graph graph){
 	}
 	printf("NodeIndexInc :\n");
 	for ( node = 0; node < graph->nodeIndexInc->end; node++){
-		printf(" (%d) : %d - %ld, ",
+		printf(" (%d) : %d - %ld - %ld, ",
 				node,
 				(graph->nodeIndexInc->start + node)->Id,
-				(graph->nodeIndexInc->start + node)->posAtBuff);
+				(graph->nodeIndexInc->start + node)->posAtBuff,
+				(graph->nodeIndexInc->start + node)->lastBatch);
 	}
 
 	printf("\n------------------------\n\n");
@@ -219,26 +221,38 @@ OK_SUCCESS insertNodeInBuff(NodeIndex * i, Buffer * b, uint32_t nodeId){
  * COMMENTS: Local, created for simplicity
  */
 
-OK_SUCCESS insertEdgeInBuff(NodeIndex * index, Buffer * buffer, uint32_t source, uint32_t target){
+OK_SUCCESS insertEdgeInBuff(NodeIndex * index, Buffer * buffer, uint32_t source, uint32_t target, Boolean *force){
 	TRACE_IN
 	ptr edgeList_p;
 	OK_SUCCESS ret;
+	uint32_t serial;
 	LOG("Get positions in buffer. Check that graph is ok. If not try to recover graph")
-	if ( ( edgeList_p = getListHead(index, source) ) == -1){
-		ERROR("Node was not inside nodeIndex")
-		printf("Error for sourceId= %u\n", source);
-		LOG("Insert nodeId in buffer for recovery")
+	if ( ( serial = getSerial(index, source) ) == -1){
+		LOG("Insert node")
 		if ( insertNodeInBuff(index, buffer, source) != Success ){
 			ERROR("Failed to insert edge")
 			return Unknown_Failure;
 		}
+		*force = True;
 	}
-
+	if ( serial == -1 ){ // --> Not existed, just inserted, so this is the last inserted
+		LOG("Now inserted")
+		edgeList_p = (index->start + index->end - 1 )->posAtBuff;
+	}else{
+		LOG("Node existed")
+		if ( *force ){
+			LOG("Get last batch")
+			edgeList_p =  (index->start + serial)->lastBatch;
+		}else{
+			edgeList_p =  (index->start + serial)->posAtBuff;
+		}
+	}
 	list_node *ln_p = getListNode(buffer, edgeList_p);
 	int i;
 	Boolean inside = False;
 
 	LOG("Add edge in list if does not exist already")
+	ptr nxt;
 	while (1){
 		for( i = 0; i < INIT; i++){
 			if ( ln_p->neighbor[i] == 0xffffffff){
@@ -246,25 +260,29 @@ OK_SUCCESS insertEdgeInBuff(NodeIndex * index, Buffer * buffer, uint32_t source,
 				ln_p->neighbor[i] = target;
 				inside = True;
 				break;
-			}else if ( ln_p->neighbor[i] == target ){
+			}else if ( !(*force) && ln_p->neighbor[i] == target ){
 				LOG("Edge already exists in graph")
-				inside = True;
-				break;
+				TRACE_OUT
+				return Request_data_found;
 			}
 		}
 		if ( inside )break;
 		if ( ln_p->nextListNode == -1 ){
-			if ( (ln_p->nextListNode = allocNewNode(buffer) ) != -1 ){
-				LOG("Space successfully allocated")
+			if ( (nxt = allocNewNode(buffer) ) != -1 ){
 				ln_p = getListNode(buffer, edgeList_p);
+				ln_p->nextListNode = nxt;
+				LOG("Space successfully allocated")
+				(index->start + serial)->lastBatch = ln_p->nextListNode;
 			}else{
 				ERROR("Failed to allocate space for list batch")
 				TRACE_OUT
 				return Memory_Failure;
 			}
 		}
-		ln_p = getListNode(buffer, ln_p->nextListNode);
+		edgeList_p = ln_p->nextListNode;
+		ln_p = getListNode(buffer, edgeList_p);
 	}
+	*force = True;
 	TRACE_OUT
 	return Success;
 }
@@ -322,21 +340,28 @@ OK_SUCCESS insertNodeInGraph(Graph graph, uint32_t nodeId){
  */
 OK_SUCCESS insertEdgeInGraph(Graph graph, uint32_t sourceId, uint32_t destId){
 	TRACE_IN
-	if ( insertEdgeInBuff(graph->nodeIndexOut, graph->bufferOut, sourceId, destId) != Success ){
-		ERROR("Edge was not inserted in graph");
-		TRACE_OUT
-		return Unknown_Failure;
-	}
-	if ( insertEdgeInBuff(graph->nodeIndexInc, graph->bufferInc, destId, sourceId) != Success ){
-		ERROR("Edge was not inserted in graph");
-		TRACE_OUT
-		return Unknown_Failure;
-	}
-	TRACE_OUT
+	Boolean force = False;
+	if ( getSerial(graph->nodeIndexInc, destId) == -1 )force = True;
+	OK_SUCCESS ret = insertEdgeInBuff(graph->nodeIndexOut, graph->bufferOut, sourceId, destId, &force);
+	switch ( ret ){
+		case Success:
+			if ( insertEdgeInBuff(graph->nodeIndexInc, graph->bufferInc, destId, sourceId, &force) != Success ){
+				ERROR("Edge was not inserted in graph");
+				TRACE_OUT
+				return Unknown_Failure;
+			}
+			break;
+		case Request_data_found:
+			break;
+		default:
+			ERROR("Edge was not inserted in graph");
+			TRACE_OUT
+			return Unknown_Failure;
+		}
 #if DEBUG_LEVEL > 1
 	printGraph(graph);
 #endif
-
+	TRACE_OUT
 	return Success;
 }
 

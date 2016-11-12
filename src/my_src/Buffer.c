@@ -101,6 +101,10 @@ void freeLastNode(Buffer *buf){
 
 list_node* getListNode(Buffer *buf, ptr node){
 	TRACE_IN
+	if ( node == -1){
+		TRACE_OUT
+		return NULL;
+	}
 	TRACE_OUT
 	return buf->list_nodes + node;
 }

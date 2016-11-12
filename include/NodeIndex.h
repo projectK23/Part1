@@ -11,6 +11,7 @@
 typedef struct _SIndex_node{
 	uint32_t Id;              //node Id
 	ptr posAtBuff;            //pointer to listhead
+	ptr lastBatch;
 } Index_node;
 
 typedef struct _SNodeIndex{
@@ -41,6 +42,14 @@ OK_SUCCESS insertNode(NodeIndex*, uint32_t nodeId, ptr point_in_buffer, Boolean 
  * Returns : Pointer to buffer
  */
 ptr getListHead(NodeIndex*, uint32_t nodeId);
+
+/***************************************************
+ * Purpose : gets serial number
+ * IN      : NodeIndex, nodeId
+ * Returns : serial number   <-- Success
+ *           -1              x-- Not found
+ */
+uint32_t getSerial(NodeIndex *, uint32_t nodeId);
 
 /***************************************************
  * Purpose : gets the pointer in buffer of a list node (with id)

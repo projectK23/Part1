@@ -56,7 +56,7 @@ OK_SUCCESS insertNode(NodeIndex* nodeIndex, uint32_t nodeId, ptr pointInBuffer, 
 	}
 	if ( !force ){
 		LOG("Search if node already exists")
-			ptr node = 0;
+		ptr node = 0;
 		while (node < nodeIndex->end) {
 			if ( (node+nodeIndex->start)->Id == nodeId){
 				LOG("Node found")
@@ -82,6 +82,7 @@ OK_SUCCESS insertNode(NodeIndex* nodeIndex, uint32_t nodeId, ptr pointInBuffer, 
 	}
 	(*(nodeIndex->start + nodeIndex->end)).Id = nodeId;
 	(*(nodeIndex->start + nodeIndex->end)).posAtBuff = pointInBuffer;
+	(*(nodeIndex->start + nodeIndex->end)).lastBatch = pointInBuffer;
 	nodeIndex->end += 1;
 	TRACE_OUT
 	return Success;
@@ -112,6 +113,37 @@ ptr getListHead(NodeIndex* nodeIndex, uint32_t nodeId)
 			LOG("Node found")
 			TRACE_OUT
 			return (node+nodeIndex->start)->posAtBuff;
+		}
+	}
+	LOG("NodeId was not found in index")
+	TRACE_OUT
+	return -1;
+}
+
+/***************************************************
+ * Purpose : gets serial number
+ * IN      : NodeIndex, nodeId
+ * Returns : serial number   <-- Success
+ *           -1              x-- Not found
+ */
+uint32_t getSerial(NodeIndex *nodeIndex, uint32_t nodeId){
+	TRACE_IN
+	if ( nodeIndex == NULL){
+		ERROR("Null nodeIndex provided")
+		TRACE_OUT
+		return -1;
+	}
+	if ( nodeIndex->start == NULL){
+		ERROR("Uninitialized buffer. Execution should never be here.")
+		TRACE_OUT
+		return -1;
+	}
+	uint32_t serial;
+	for ( serial = 0; serial < nodeIndex->end; serial++ ){
+		if ( (nodeIndex->start + serial)->Id == nodeId){
+			LOG("Node found")
+			TRACE_OUT
+			return serial;
 		}
 	}
 	LOG("NodeId was not found in index")

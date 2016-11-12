@@ -75,55 +75,17 @@ OK_SUCCESS handleBlast1(){
 	unsigned short counter = 0;
 	unsigned int thousands = 0;
 	LOG("Read data from blast1 file")
+	char c;
 	while( fgets(op, 127, fp) != NULL ){
 		if ( strcmp(op, "s") == 0 || strcmp(op, "S") == 0 ){
 			LOG("First blast completed!")
 			break;
 		}
 		sscanf(op, "%d %d", &source, &dest);
-		ret = insertNodeInGraph(graph, source);
-		switch ( ret ){
-			case Success:
-				LOG("Source node was successfully inserted")
-				break;
-			case Request_data_found:
-				LOG("Node already existed")
-				break;
-
-			case Unknown_Failure:
-			case Memory_Failure:
-				ERROR("Node insertion failed")
-				break;
-
-			default: break;
-		}
-		if ( ret == Unknown_Failure ){
-			LOG(op)
-			LOG(" --> Command failed to execute")
-			continue;
-		}
-		ret = insertNodeInGraph(graph, dest);
-		switch ( ret ){
-			case Success:
-				LOG("Source node was successfully inserted")
-				break;
-			case Request_data_found:
-				LOG("Node already existed")
-				break;
-
-			case Unknown_Failure:
-			case Memory_Failure:
-				ERROR("Node insertion failed")
-				break;
-
-			default: break;
-		}
-		if ( ret == Unknown_Failure ){
-			LOG(op)
-			LOG(" --> Command failed to execute")
-			continue;
-		}
-
+#if DEBUG_LEVEL > 0
+		printf("******** %s\n", op);
+		scanf("%c", &c);
+#endif
 		insertEdgeInGraph(graph, source, dest);
 		counter++;
 		if ( !(counter % 1000) ){
@@ -131,6 +93,9 @@ OK_SUCCESS handleBlast1(){
 			counter = 0;
 			printf("%d thousands edges inserted in graph\n", thousands);
 		}
+#if DEGUG_LEVEL > 1
+		scanf("%c", &c);
+#endif
 	}
 	fclose(fp);
 	printf("%d edges inserted in graph\n", thousands * 1000 + counter);

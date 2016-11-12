@@ -9,7 +9,7 @@ typedef unsigned long  uint64_t;
 //#if DEBUG_LEVEL == 0
 //#	define INIT 20
 //#else
-#	define INIT 30
+#	define INIT 50
 //#endif
 
 #define WORKERS 2
