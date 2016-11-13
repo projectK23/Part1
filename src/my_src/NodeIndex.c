@@ -27,16 +27,15 @@ NodeIndex* createNodeIndex(){
 		TRACE_OUT
 		return NULL;
 	}
-	nodeIndex->size = INIT;
+	nodeIndex->size = STEP;
 	if ( ( nodeIndex->start = malloc(nodeIndex->size*sizeof(Index_node) ) ) == NULL ){
 		ERROR("Memory allocation for nodeIndex failed")
 		free(nodeIndex);
 		TRACE_OUT
 		return NULL;
 	}
-	memset(nodeIndex->start, 0, nodeIndex->size);
+	memset(nodeIndex->start, 0xFF, nodeIndex->size*sizeof(Index_node));
 	LOG("Successfully created nodeIndex")
-    nodeIndex->end= 0;
     TRACE_OUT
     return nodeIndex;
 }
@@ -46,7 +45,7 @@ NodeIndex* createNodeIndex(){
  * IN      : nodeId, ptr to buffer
  * Returns : Result code (result_codes.h)
  */
-OK_SUCCESS insertNode(NodeIndex* nodeIndex, uint32_t nodeId, ptr pointInBuffer, Boolean force){
+OK_SUCCESS insertNode(NodeIndex* nodeIndex, uint32_t nodeId, ptr pointInBuffer){
 	TRACE_IN
 	LOG("Check input")
 	if ( pointInBuffer == -1 ){
@@ -54,36 +53,32 @@ OK_SUCCESS insertNode(NodeIndex* nodeIndex, uint32_t nodeId, ptr pointInBuffer, 
 		TRACE_OUT
 		return Unknown_Failure;
 	}
-	if ( !force ){
-		LOG("Search if node already exists")
-		ptr node = 0;
-		while (node < nodeIndex->end) {
-			if ( (node+nodeIndex->start)->Id == nodeId){
-				LOG("Node found")
-				TRACE_OUT
-				return Request_data_found;
-			}
-			node += 1;
-		}
-	}
 	LOG("Check index space")
-	if ( nodeIndex->end == nodeIndex->size  ){
+
+	if ( nodeIndex->size <= nodeId){
 		LOG("Add space to NodeIndex (realloc)")
 		Index_node *new_ptr;
-		if ( ( new_ptr = realloc(nodeIndex->start, 2*nodeIndex->size*sizeof(Index_node)) ) == NULL ){
+		int size = (nodeId / STEP + 1)*STEP;
+		if ( ( new_ptr = realloc(nodeIndex->start, size*sizeof(Index_node)) ) == NULL ){
 			ERROR("Realloc failed")
 			TRACE_OUT
 			return Memory_Failure;
 		}else{
 			LOG("Realloc succeed. Reschedule NodeIndex list")
 			nodeIndex->start = new_ptr;
-			nodeIndex->size *= 2;
+			memset(nodeIndex->start + nodeIndex->size, 0xFF, STEP*sizeof(Index_node));
+			nodeIndex->size = size;
+		}
+	}else{
+		LOG("Check if node exists in index")
+		if ( (nodeIndex->start + nodeId )->posAtBuff != -1 ){
+			LOG("Node exists in index")
+			TRACE_OUT
+			return Request_data_found;
 		}
 	}
-	(*(nodeIndex->start + nodeIndex->end)).Id = nodeId;
-	(*(nodeIndex->start + nodeIndex->end)).posAtBuff = pointInBuffer;
-	(*(nodeIndex->start + nodeIndex->end)).lastBatch = pointInBuffer;
-	nodeIndex->end += 1;
+	(nodeIndex->start + nodeId)->posAtBuff = pointInBuffer;
+	(nodeIndex->start + nodeId)->lastBatch = pointInBuffer;
 	TRACE_OUT
 	return Success;
 }
@@ -108,25 +103,22 @@ ptr getListHead(NodeIndex* nodeIndex, uint32_t nodeId)
 		return -1;
 	}
 	ptr node;
-	for ( node = 0; node < nodeIndex->end; node++ ){
-		if ( (nodeIndex->start + node)->Id == nodeId){
-			LOG("Node found")
-			TRACE_OUT
-			return (node+nodeIndex->start)->posAtBuff;
-		}
+	if ( nodeId >= nodeIndex->size){
+		LOG("Node not inside")
+		TRACE_OUT
+		return -1;
 	}
-	LOG("NodeId was not found in index")
 	TRACE_OUT
-	return -1;
+	return (nodeIndex->start + nodeId)->posAtBuff;
 }
 
 /***************************************************
- * Purpose : gets serial number
- * IN      : NodeIndex, nodeId
- * Returns : serial number   <-- Success
- *           -1              x-- Not found
+ * Purpose : gets the pointer in buffer of the last batch of a list node (with id)
+ * IN      : nodeId
+ * Returns : Pointer to buffer
  */
-uint32_t getSerial(NodeIndex *nodeIndex, uint32_t nodeId){
+ptr getListTail(NodeIndex* nodeIndex, uint32_t nodeId)
+{
 	TRACE_IN
 	if ( nodeIndex == NULL){
 		ERROR("Null nodeIndex provided")
@@ -138,17 +130,14 @@ uint32_t getSerial(NodeIndex *nodeIndex, uint32_t nodeId){
 		TRACE_OUT
 		return -1;
 	}
-	uint32_t serial;
-	for ( serial = 0; serial < nodeIndex->end; serial++ ){
-		if ( (nodeIndex->start + serial)->Id == nodeId){
-			LOG("Node found")
-			TRACE_OUT
-			return serial;
-		}
+	ptr node;
+	if ( nodeId > nodeIndex->size){
+		LOG("Node not inside")
+		TRACE_OUT
+		return -1;
 	}
-	LOG("NodeId was not found in index")
 	TRACE_OUT
-	return -1;
+	return (nodeIndex->start + nodeId)->lastBatch;
 }
 
 /***************************************************

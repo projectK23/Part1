@@ -9,15 +9,13 @@
 #include "../libs/include/shared_definitions.h"
 
 typedef struct _SIndex_node{
-	uint32_t Id;              //node Id
-	ptr posAtBuff;            //pointer to listhead
+	ptr posAtBuff;
 	ptr lastBatch;
 } Index_node;
 
 typedef struct _SNodeIndex{
 	uint32_t size;       //number of Index nodes
 	Index_node* start;   //pointer to first Index node
-	ptr end;             //pointer to last Index node
 } NodeIndex;
 
 
@@ -34,7 +32,7 @@ NodeIndex* createNodeIndex();
  * IN      : Index,nodeId, ptr to buffer
  * Returns : Result code (result_codes.h)
  */
-OK_SUCCESS insertNode(NodeIndex*, uint32_t nodeId, ptr point_in_buffer, Boolean force);
+OK_SUCCESS insertNode(NodeIndex*, uint32_t nodeId, ptr point_in_buffer);
 
 /***************************************************
  * Purpose : gets the pointer in buffer of a list node (with id)
@@ -44,12 +42,11 @@ OK_SUCCESS insertNode(NodeIndex*, uint32_t nodeId, ptr point_in_buffer, Boolean 
 ptr getListHead(NodeIndex*, uint32_t nodeId);
 
 /***************************************************
- * Purpose : gets serial number
- * IN      : NodeIndex, nodeId
- * Returns : serial number   <-- Success
- *           -1              x-- Not found
+ * Purpose : gets the pointer in buffer of the last batch of a list node (with id)
+ * IN      : nodeId
+ * Returns : Pointer to buffer
  */
-uint32_t getSerial(NodeIndex *, uint32_t nodeId);
+ptr getListTail(NodeIndex* nodeIndex, uint32_t nodeId);
 
 /***************************************************
  * Purpose : gets the pointer in buffer of a list node (with id)

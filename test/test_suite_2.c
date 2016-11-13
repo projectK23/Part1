@@ -39,18 +39,19 @@ void clear_test_suite_2(){
  *  TEST CASES
  */
 /**
- * PURPOSE: Insert INIT more nodes so as to double index.
- * CHECK  : Pointers to header are ok, before and after realloc. Size is doubles=d
+ * PURPOSE: Insert more nodes at STEP + area.
+ * CHECK  : Pointers to header are ok, before and after realloc.
  */
 Boolean TestCaseNodeIndex1(){
 	int i;
-	for ( i = 0; i < INIT; i++){
-		if (  !( insertNode(index_p, i+2, i+2, False) == Success AND i+2 == index_p->end ) ){
+	for ( i = 0; i < 5; i++){
+		if (  !( insertNode(index_p, STEP+i, STEP+i) == Success ) ){
 			return False;
 		}
 
 	}
-	return index_p->size == 2*INIT;
+	printf("size == %d\n", index_p->size);
+	return index_p->size == 2*STEP;
 }
 
 /**
@@ -59,12 +60,12 @@ Boolean TestCaseNodeIndex1(){
  */
 Boolean TestCaseNodeIndex2(){
 	int i;
-	for ( i = 0; i < INIT + 1; i++){
-		if (  insertNode(index_p, i+1, i+1, False) != Request_data_found ){
+	for ( i = 0; i < 5; i++){
+		if (  insertNode(index_p, STEP+i, i+1) != Request_data_found ){
 			return False;
 		}
 	}
-	return index_p->end == INIT+1;
+	return True;
 }
 
 /**
@@ -73,8 +74,8 @@ Boolean TestCaseNodeIndex2(){
  */
 Boolean TestCaseNodeIndex3(){
 	int i;
-	for ( i = 1; i < INIT + 2; i++){
-		if (  getListHead(index_p, i) != i ){
+	for ( i = 1; i < 5; i++){
+		if (  getListHead(index_p, STEP+i) != STEP+i ){
 			return False;
 		}
 	}
@@ -88,7 +89,7 @@ Boolean TestCaseNodeIndex3(){
 Boolean TestCaseNodeIndex4(){
 	int i;
 	for ( i = 1; i < INIT + 2; i++){
-		if (  getListHead(index_p, i + 2*INIT ) != -1 ){
+		if (  getListHead(index_p, 50 + 2*INIT ) != -1 ){
 			return False;
 		}
 	}
@@ -106,10 +107,9 @@ Boolean TestCaseNodeIndex4(){
 int test_suite_2(){
 	init_test_suite_2();
 	TEST(testnum++, "createNodeIndex returns NOT NULL", ( index_p = createNodeIndex() ) != NULL
-			AND index_p->size == INIT AND index_p->end == 0 );
-	TEST(testnum++, "insert one Node in Node index", insertNode(index_p, 1, 1, False) == Success
-			AND index_p->end == 1 );
-	TEST(testnum++, "Insert INIT more nodes. Index will double it's size.", TestCaseNodeIndex1() );
+			AND index_p->size == STEP );
+	TEST(testnum++, "insert one Node in Node index", insertNode(index_p, 1, 1) == Success );
+	TEST(testnum++, "Insert more nodes further than step area. Index will reallocate space.", TestCaseNodeIndex1() );
 	TEST(testnum++, "Insert already existing nodes. Index size will remain the same.", TestCaseNodeIndex2() );
 	TEST(testnum++, "Search with nodeId gives correct pointer. .", TestCaseNodeIndex3() );
 	TEST(testnum++, "Search not existing nodeId returns 0xffffffff. .", TestCaseNodeIndex4() );

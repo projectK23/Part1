@@ -3,7 +3,6 @@
 
 #include "../libs/include/shared_definitions.h"
 #include "../libs/include/result_codes.h"
-#include "../libs/include/shared_definitions.h"
 
 typedef
 struct _Slist_node{

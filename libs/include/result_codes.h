@@ -19,7 +19,7 @@ typedef enum{
 	File_does_not_exist,
 	Threads_not_created,
 	Max_Error_Num
-}Result;
+}OK_SUCCESS;
 
-typedef Result OK_SUCCESS;
+typedef OK_SUCCESS Result;
 #endif

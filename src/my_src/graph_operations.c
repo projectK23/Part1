@@ -82,7 +82,7 @@ void printGraph(Graph graph){
 	ptr node;
 	int i;
 	printf("-------- GRAPH ---------\n");
-	printf("graph = %ld\n", (long)graph);
+	printf("graph = 0x%x\n", graph);
 	printf("bufOut(start: 0x%x, end: 0x%x, size :%u)\n",
 			graph->bufferOut->list_nodes,
 			graph->bufferOut->list_nodes + graph->bufferOut->end,
@@ -95,10 +95,9 @@ void printGraph(Graph graph){
 		printf(" | %ld |\n",  (graph->bufferOut->list_nodes + node)->nextListNode);
 	}
 	printf("NodeIndexOut :\n");
-	for ( node = 0; node < graph->nodeIndexOut->end; node++){
-		printf(" (%d) : %d - %ld - %ld, ",
+	for ( node = 0; node < graph->nodeIndexOut->size; node++){
+		printf(" (%d) : %ld - %ld, ",
 				node,
-				(graph->nodeIndexOut->start + node)->Id,
 				(graph->nodeIndexOut->start + node)->posAtBuff,
 				(graph->nodeIndexOut->start + node)->lastBatch );
 	}
@@ -115,10 +114,9 @@ void printGraph(Graph graph){
 		printf(" | %ld |\n",  (graph->bufferInc->list_nodes + node)->nextListNode);
 	}
 	printf("NodeIndexInc :\n");
-	for ( node = 0; node < graph->nodeIndexInc->end; node++){
-		printf(" (%d) : %d - %ld - %ld, ",
+	for ( node = 0; node < graph->nodeIndexInc->size; node++){
+		printf(" (%d) : %ld - %ld, ",
 				node,
-				(graph->nodeIndexInc->start + node)->Id,
 				(graph->nodeIndexInc->start + node)->posAtBuff,
 				(graph->nodeIndexInc->start + node)->lastBatch);
 	}
@@ -199,7 +197,7 @@ OK_SUCCESS insertNodeInBuff(NodeIndex * i, Buffer * b, uint32_t nodeId){
 			return Unknown_Failure;
 		}else{
 			LOG("Allocation in buffer was successful")
-			if ( insertNode(i, nodeId, new_node, True) == Memory_Failure){
+			if ( insertNode(i, nodeId, new_node) == Memory_Failure){
 				ERROR("Unable to insert node in NodeIndex. Revert last insertion in buffer")
 				freeLastNode(b);
 				TRACE_OUT
@@ -225,27 +223,20 @@ OK_SUCCESS insertEdgeInBuff(NodeIndex * index, Buffer * buffer, uint32_t source,
 	TRACE_IN
 	ptr edgeList_p;
 	OK_SUCCESS ret;
-	uint32_t serial;
-	LOG("Get positions in buffer. Check that graph is ok. If not try to recover graph")
-	if ( ( serial = getSerial(index, source) ) == -1){
+	LOG("Get positions in buffer")
+	if ( ( getListHead(index, source) ) == -1){
 		LOG("Insert node")
+
 		if ( insertNodeInBuff(index, buffer, source) != Success ){
 			ERROR("Failed to insert edge")
 			return Unknown_Failure;
 		}
 		*force = True;
 	}
-	if ( serial == -1 ){ // --> Not existed, just inserted, so this is the last inserted
-		LOG("Now inserted")
-		edgeList_p = (index->start + index->end - 1 )->posAtBuff;
+	if ( *force){
+		edgeList_p = getListTail(index, source);
 	}else{
-		LOG("Node existed")
-		if ( *force ){
-			LOG("Get last batch")
-			edgeList_p =  (index->start + serial)->lastBatch;
-		}else{
-			edgeList_p =  (index->start + serial)->posAtBuff;
-		}
+		edgeList_p = getListHead(index, source);
 	}
 	list_node *ln_p = getListNode(buffer, edgeList_p);
 	int i;
@@ -269,10 +260,10 @@ OK_SUCCESS insertEdgeInBuff(NodeIndex * index, Buffer * buffer, uint32_t source,
 		if ( inside )break;
 		if ( ln_p->nextListNode == -1 ){
 			if ( (nxt = allocNewNode(buffer) ) != -1 ){
+				LOG("Space successfully allocated")
 				ln_p = getListNode(buffer, edgeList_p);
 				ln_p->nextListNode = nxt;
-				LOG("Space successfully allocated")
-				(index->start + serial)->lastBatch = ln_p->nextListNode;
+				(index->start + source)->lastBatch = ln_p->nextListNode;
 			}else{
 				ERROR("Failed to allocate space for list batch")
 				TRACE_OUT
@@ -341,7 +332,7 @@ OK_SUCCESS insertNodeInGraph(Graph graph, uint32_t nodeId){
 OK_SUCCESS insertEdgeInGraph(Graph graph, uint32_t sourceId, uint32_t destId){
 	TRACE_IN
 	Boolean force = False;
-	if ( getSerial(graph->nodeIndexInc, destId) == -1 )force = True;
+	if ( ( getListHead(graph->nodeIndexInc, destId) ) == -1)force = True;
 	OK_SUCCESS ret = insertEdgeInBuff(graph->nodeIndexOut, graph->bufferOut, sourceId, destId, &force);
 	switch ( ret ){
 		case Success:
@@ -430,8 +421,7 @@ void *l_existPathInGraph(void *arg){
 			}
 		}
 		if ( ( edgeList_p = getListHead(index, node.nodeId) ) == -1 ){
-			FATAL("Error in search algorithm (I). Probable software error.")
-			LOG("Unsafe search results")
+			LOG("Released paths")
 			continue;
 		}
 		ln_p = getListNode(buf, edgeList_p);
