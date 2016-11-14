@@ -82,8 +82,8 @@ OK_SUCCESS handleBlast1(){
 			break;
 		}
 		sscanf(op, "%d %d", &source, &dest);
-#if DEBUG_LEVEL > 0
-		printf("******** %s\n", op);
+#if DEBUG_LEVEL > 1
+		printf("Insertion in graph  %s\n", op);
 		scanf("%c", &c);
 #endif
 		insertEdgeInGraph(graph, source, dest);
@@ -133,24 +133,6 @@ OK_SUCCESS handleBlast2(){
 #if DEBUG_LEVEL != 0
 				printf("%s", op);
 #endif
-				if ( ( ret = insertNodeInGraph(graph, source) ) != Success ){
-					if ( ret != Request_data_found){
-						ERROR("Source node failed to get in graph. Ignore action")
-						printf("RET = %d\n", ret);
-						break;
-					}else{
-						LOG("Source node already exists in graph")
-					}
-				}
-				if ( ( ret = insertNodeInGraph(graph, dest) ) != Success ){
-					if ( ret != Request_data_found){
-						ERROR("Destination node failed to get in graph. Ignore action")
-						printf("RET = %d\n", ret);
-						break;
-					}else{
-						LOG("Source node already exists in graph")
-					}
-				}
 				if ( ( ret = insertEdgeInGraph(graph, source, dest) ) != Success ){
 					ERROR("Edge failed to get in graph. Ignore action")
 					printf("RET = %d\n", ret);
