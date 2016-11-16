@@ -629,7 +629,7 @@ void *l_searchPathInGraph(void *arg){
 	data_t node;
 	ptr edgeList_p;
 	list_node *ln_p;
-	int i;
+	int i, current_step;
 	Boolean work;
 	while(1)
 	{
@@ -668,15 +668,19 @@ void *l_searchPathInGraph(void *arg){
 				Graph_setReturnVal(graph, -1, &q);
 				break;
 			}
+			current_step = node.step;
+printf("Thread %d popped node=%d (%d) from q\n", thID, node.nodeId, current_step);
 			if ( thID == 0 ){
 				if ( ( edgeList_p = getListHead(graph->nodeIndexOut, node.nodeId) ) == -1 )
 				{
+printf("Thread %d : edgeList_p=%d\n", thID, edgeList_p);
 					LOG("Released paths")
 					continue;
 				}
 			}else{
 				if ( ( edgeList_p = getListHead(graph->nodeIndexInc, node.nodeId) ) == -1 )
 				{
+printf("Thread %d : edgeList_p=%d\n", thID, edgeList_p);
 					LOG("Released paths")
 					continue;
 				}
@@ -689,14 +693,17 @@ void *l_searchPathInGraph(void *arg){
 			while(1){
 				for ( i = 0; i < INIT; i++){
 					if ( ln_p->neighbor[i] == -1 )break;
-					node.nodeId = ln_p->neighbor[i];
+printf("Thread %d : Neighb=%d\n", thID, ln_p->neighbor[i]);
+
 					Graph_enterCritical(graph);
 					if ( V[node.nodeId].length != -1){
 						LOG("Node found in visited graph")
 						if ( V[node.nodeId].direction != thID ){
 							LOG("Path found")
+printf("Thread %d found path: %d\n", V[node.nodeId].length);
 							Graph_setReturnVal(graph, V[node.nodeId].length, &q);
 							Graph_leaveCritical(graph);
+							work = False;
 							break;
 						}else{
 							LOG("Node already visited\n")
@@ -709,10 +716,12 @@ void *l_searchPathInGraph(void *arg){
 						Graph_leaveCritical(graph);
 						if ( Q_push(q, node) != Success ){
 							ERROR("q_init failed")
-							Q_destroy(&q);
-							retValue =  -1;
+							Graph_setReturnVal(graph, -1, &q);
+							work = False;
+							break;
 						}
 					}
+					if ( !work )break;
 				}
 				if ( ln_p->nextListNode == -1)break;
 				if ( thID == 0 )
@@ -771,6 +780,7 @@ OK_SUCCESS Graph_startUpTask(Graph graph, uint32_t source, uint32_t target){
 
 int existPathInGraph(Graph graph, uint32_t source, uint32_t target){
 	TRACE_IN
+	printGraph(graph);
 	if ( source == target){
 		LOG("source == target in search")
 		TRACE_OUT
@@ -783,6 +793,9 @@ int existPathInGraph(Graph graph, uint32_t source, uint32_t target){
 		return -1;
 	}
 	ret = Graph_getReturnVal(graph);
+	char c;
+	printf("Ret = %d\n", ret);
+	scanf("%c", &c);
 	TRACE_OUT
 	return ret;
 }

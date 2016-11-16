@@ -11,7 +11,7 @@ typedef unsigned long  uint64_t;
 #	define STEP 1000
 #else*/
 #	define INIT 5
-#	define STEP 100
+#	define STEP 20
 //#endif
 
 #define WORKERS 2
