@@ -528,7 +528,7 @@ void Graph_workersWaitForTask(Graph graph, int i, Arguments *args){
 
 typedef struct _Sflags{
 	uint32_t length;
-	char direction;
+	unsigned char direction;
 }visitFlags;
 
 visitFlags *V;
@@ -545,8 +545,10 @@ int finished;
 
 void Graph_setReturnVal(Graph graph, int ret, Q *q){
 	TRACE_IN;
+printf("Graph_setReturnVal : ret = %d\n", ret);
 	Graph_enterCritical(graph);
 	if ( finished == 0 )retValue = ret;
+printf("Set!!\n");
 	finished++;
 	Graph_leaveCritical(graph);
 	Q_destroy(q);
@@ -591,11 +593,11 @@ int Graph_getReturnVal(Graph graph){
 	TRACE_IN;
 	int ret;
 	Graph_enterCritical(graph);
-	while ( retValue == -2 ){
+	while ( graph->masterWaitsForResult ){
 		pthread_cond_wait(&graph->finish, &graph->critical);
-		ret = retValue;
 	}
 	Graph_leaveCritical(graph);
+	ret = retValue;
 	retValue = -2;
 	free(V);
 	TRACE_OUT
@@ -668,23 +670,22 @@ void *l_searchPathInGraph(void *arg){
 				Graph_setReturnVal(graph, -1, &q);
 				break;
 			}
-			current_step = node.step;
-printf("Thread %d popped node=%d (%d) from q\n", thID, node.nodeId, current_step);
+			node.step += 1;
+printf("Thread %d popped node=%d (%d) from q\n", thID, node.nodeId, node.step);
 			if ( thID == 0 ){
 				if ( ( edgeList_p = getListHead(graph->nodeIndexOut, node.nodeId) ) == -1 )
 				{
-printf("Thread %d : edgeList_p=%d\n", thID, edgeList_p);
 					LOG("Released paths")
 					continue;
 				}
 			}else{
 				if ( ( edgeList_p = getListHead(graph->nodeIndexInc, node.nodeId) ) == -1 )
 				{
-printf("Thread %d : edgeList_p=%d\n", thID, edgeList_p);
 					LOG("Released paths")
 					continue;
 				}
 			}
+printf("Thread %d : edgeList_p=%d\n", thID, edgeList_p);
 			if ( thID == 0)
 				ln_p = getListNode(graph->bufferOut, edgeList_p);
 			else
@@ -696,13 +697,15 @@ printf("Thread %d : edgeList_p=%d\n", thID, edgeList_p);
 printf("Thread %d : Neighb=%d\n", thID, ln_p->neighbor[i]);
 
 					Graph_enterCritical(graph);
-					if ( V[node.nodeId].length != -1){
+					if ( V[ln_p->neighbor[i]].length != -1){
 						LOG("Node found in visited graph")
-						if ( V[node.nodeId].direction != thID ){
+printf("Thread %d node found in visited graph\n", thID);
+printf("Thread %d found visited: V[%d]=%d.%d\n", thID, ln_p->neighbor[i], V[ln_p->neighbor[i]].length, V[ln_p->neighbor[i]].direction  );
+						if ( V[ln_p->neighbor[i]].direction != thID ){
 							LOG("Path found")
-printf("Thread %d found path: %d\n", V[node.nodeId].length);
-							Graph_setReturnVal(graph, V[node.nodeId].length, &q);
+printf("Thread %d found path. Node(%d.%d) was visited by other thread.\n", thID, V[ln_p->neighbor[i]].length, V[ln_p->neighbor[i]].direction);
 							Graph_leaveCritical(graph);
+							Graph_setReturnVal(graph, V[ln_p->neighbor[i]].length+node.step, &q);
 							work = False;
 							break;
 						}else{
@@ -710,9 +713,14 @@ printf("Thread %d found path: %d\n", V[node.nodeId].length);
 							Graph_leaveCritical(graph);
 							continue;
 						}
+					}else if (ln_p->neighbor[i] == worker.target ){
+						Graph_leaveCritical(graph);
+						Graph_setReturnVal(graph, node.step, &q);
 					}else{
-						V[node.nodeId].direction = thID;
-						V[node.nodeId].length = node.step;
+						V[ln_p->neighbor[i]].direction = thID;
+						V[ln_p->neighbor[i]].length = node.step;
+						node.nodeId = ln_p->neighbor[i];
+printf("Thread %d sets  V[%d]=%d. %d\n", thID, ln_p->neighbor[i], V[ln_p->neighbor[i]].length, V[ln_p->neighbor[i]].direction);
 						Graph_leaveCritical(graph);
 						if ( Q_push(q, node) != Success ){
 							ERROR("q_init failed")
@@ -721,8 +729,9 @@ printf("Thread %d found path: %d\n", V[node.nodeId].length);
 							break;
 						}
 					}
-					if ( !work )break;
 				}
+				if ( !work )break;
+printf("Thread %d : nextListNode = %d\n", thID, ln_p->nextListNode);
 				if ( ln_p->nextListNode == -1)break;
 				if ( thID == 0 )
 					ln_p = getListNode(graph->bufferOut, ln_p->nextListNode);
@@ -756,8 +765,14 @@ OK_SUCCESS Graph_startUpTask(Graph graph, uint32_t source, uint32_t target){
 		return Memory_Failure;
 	}
 	memset(V, 0xff, max_size*sizeof(visitFlags) );
-	finished = 0;
+	int i;
+	for ( i = 0; i < max_size; i++){
+		printf("V[%d]=%d.%d\n", i, V[i].length, V[i].direction);
+	}
 	pthread_mutex_lock(&graph->start);
+	graph->masterWaitsForResult = True;
+	finished = 0;
+	retValue = -2;
 	out.source = source;
 	out.target = target;
 	inc.source = target;

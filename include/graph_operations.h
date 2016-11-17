@@ -27,6 +27,7 @@ typedef struct _Sgraph{
 	pthread_t worker[WORKERS];
 	Boolean assign;
 	Boolean do_exit;
+	Boolean masterWaitsForResult;
 	int workers_started;
 }graph_t;
 

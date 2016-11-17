@@ -84,7 +84,7 @@ OK_SUCCESS handleBlast1(){
 		sscanf(op, "%d %d", &source, &dest);
 #if DEBUG_LEVEL > 1
 		printf("Insertion in graph  %s\n", op);
-		scanf("%c", &c);
+//		scanf("%c", &c);
 #endif
 		insertEdgeInGraph(graph, source, dest);
 		counter++;
@@ -94,7 +94,7 @@ OK_SUCCESS handleBlast1(){
 			printf("%d thousands edges inserted in graph\n", thousands);
 		}
 #if DEGUG_LEVEL > 1
-		scanf("%c", &c);
+//		scanf("%c", &c);
 #endif
 	}
 	fclose(fp);
