@@ -17,6 +17,11 @@ typedef struct _Sflags{
 	unsigned char direction;
 }visitFlags;
 
+typedef struct _Slast_path_req{
+	uint32_t source;
+	uint32_t target;
+}Last_path_req;
+
 
 typedef struct _Sgraph{
 	NodeIndex *nodeIndexOut;
@@ -32,10 +37,13 @@ typedef struct _Sgraph{
 	pthread_t worker[WORKERS];
 	Boolean assign;
 	Boolean do_exit;
+	Last_path_req out;
+	Last_path_req inc;
 	Boolean masterWaitsForResult;
 	visitFlags *V;
 	int workers_finished;
 	int workers_started;
+	long result;
 }graph_t;
 
 /******************************************************

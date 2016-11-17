@@ -439,16 +439,6 @@ OK_SUCCESS insertEdgeInGraph(Graph graph, uint32_t sourceId, uint32_t destId){
 }
 
 
-/***************************
- * LOCAL:
- */
-typedef struct args{
-	uint32_t source;
-	uint32_t target;
-}Arguments;
-
-Arguments out, inc;
-
 /******************************************************
  * FUNCTION: Graph_enterCritical
  * PURPOSE : Mutex is locked
@@ -499,7 +489,7 @@ void Graph_killWorkers(Graph graph){
  * IN      : Graph, pointer to arguments of task
  * OUT     : n/a
  */
-void Graph_workersWaitForTask(Graph graph, int i, Arguments *args){
+void Graph_workersWaitForTask(Graph graph, int i, Last_path_req *args){
 	TRACE_IN
 	Boolean start = False;
 	while ( !start ){
@@ -511,23 +501,17 @@ void Graph_workersWaitForTask(Graph graph, int i, Arguments *args){
 		pthread_cond_wait(&graph->start_up, &graph->start);
 		start = True;
 		if ( i == 0){
-			(*args).source = out.source;
-			(*args).target = out.target;
+			(*args).source = graph->out.source;
+			(*args).target = graph->out.target;
 		}else{
-			(*args).source = inc.source;
-			(*args).target = inc.target;
+			(*args).source = graph->inc.source;
+			(*args).target = graph->inc.target;
 		}
 		pthread_mutex_unlock(&graph->start);
 	}
 	TRACE_OUT
 }
 
-#define OUTGOING  0
-#define INCOMING  1
-#define UNDEFINED 0xFF
-
-
-int retValue;
 
 /******************************************************
  * FUNCTION: Graph_returnVal
@@ -541,12 +525,12 @@ void Graph_setReturnVal(Graph graph, int ret, Q *q){
 	TRACE_IN;
 printf("Graph_setReturnVal : ret = %d\n", ret);
 	Graph_enterCritical(graph);
-	if ( finished == 0 )retValue = ret;
+	if ( graph->workers_finished == 0 )graph->result = ret;
 printf("Set!!\n");
-	finished++;
+	graph->workers_finished++;
 	Graph_leaveCritical(graph);
 	Q_destroy(q);
-	if ( finished == 2 )
+	if ( graph->workers_finished == 2 )
 		pthread_cond_signal(&graph->finish);
 	TRACE_OUT
 }
@@ -563,13 +547,13 @@ Boolean Graph_hasReturnVal(Graph graph, Q *q){
 	TRACE_IN;
 	Boolean result = False;
 	Graph_enterCritical(graph);
-	if ( retValue != -2 )finished++;
-	if ( finished == 2 ){
+	if ( graph->result != -2 )graph->workers_finished++;
+	if ( graph->workers_finished == 2 ){
 		result = True;
 		Q_destroy(q);
 	}
 	Graph_leaveCritical(graph);
-	if ( finished == 2 )
+	if ( graph->workers_finished == 2 )
 		pthread_cond_signal(&graph->finish);
 	TRACE_OUT
 	return result;
@@ -591,9 +575,8 @@ int Graph_getReturnVal(Graph graph){
 		pthread_cond_wait(&graph->finish, &graph->critical);
 	}
 	Graph_leaveCritical(graph);
-	ret = retValue;
-	retValue = -2;
-	free(V);
+	ret = graph->result;
+	free(graph->V);
 	TRACE_OUT
 	return ret;
 }
@@ -620,7 +603,7 @@ void *l_searchPathInGraph(void *arg){
 	}
 	Graph_leaveCritical(graph);
 	printf("Slave %d started working.\n", thID);
-	Arguments worker;
+	Last_path_req worker;
 	Q q = NULL;
 	data_t node;
 	ptr edgeList_p;
@@ -641,15 +624,15 @@ void *l_searchPathInGraph(void *arg){
 		node.nodeId = worker.source;
 		node.step = 0;
 		Graph_enterCritical(graph);
-		if ( V[node.nodeId].length != -1){
+		if ( graph->V[node.nodeId].length != -1){
 			LOG("Node found in visited graph")
-			Graph_setReturnVal(graph, V[node.nodeId].length, &q);
+			Graph_setReturnVal(graph, graph->V[node.nodeId].length, &q);
 			Graph_leaveCritical(graph);
 			work = False;
 			continue;
 		}else{
-			V[node.nodeId].direction = thID;
-			V[node.nodeId].length = node.step;
+			graph->V[node.nodeId].direction = thID;
+			graph->V[node.nodeId].length = node.step;
 			Graph_leaveCritical(graph);
 			if ( Q_push(q, node) != Success ){
 				ERROR("q_init failed")
@@ -691,15 +674,17 @@ printf("Thread %d : edgeList_p=%d\n", thID, edgeList_p);
 printf("Thread %d : Neighb=%d\n", thID, ln_p->neighbor[i]);
 
 					Graph_enterCritical(graph);
-					if ( V[ln_p->neighbor[i]].length != -1){
+					if ( graph->V[ln_p->neighbor[i]].length != -1){
 						LOG("Node found in visited graph")
 printf("Thread %d node found in visited graph\n", thID);
-printf("Thread %d found visited: V[%d]=%d.%d\n", thID, ln_p->neighbor[i], V[ln_p->neighbor[i]].length, V[ln_p->neighbor[i]].direction  );
-						if ( V[ln_p->neighbor[i]].direction != thID ){
+printf("Thread %d found visited: V[%d]=%d.%d\n", thID, ln_p->neighbor[i],
+		graph->V[ln_p->neighbor[i]].length, graph->V[ln_p->neighbor[i]].direction  );
+						if ( graph->V[ln_p->neighbor[i]].direction != thID ){
 							LOG("Path found")
-printf("Thread %d found path. Node(%d.%d) was visited by other thread.\n", thID, V[ln_p->neighbor[i]].length, V[ln_p->neighbor[i]].direction);
+printf("Thread %d found path. Node(%d.%d) was visited by other thread.\n", thID,
+		graph->V[ln_p->neighbor[i]].length, graph->V[ln_p->neighbor[i]].direction);
 							Graph_leaveCritical(graph);
-							Graph_setReturnVal(graph, V[ln_p->neighbor[i]].length+node.step, &q);
+							Graph_setReturnVal(graph, graph->V[ln_p->neighbor[i]].length+node.step, &q);
 							work = False;
 							break;
 						}else{
@@ -711,10 +696,11 @@ printf("Thread %d found path. Node(%d.%d) was visited by other thread.\n", thID,
 						Graph_leaveCritical(graph);
 						Graph_setReturnVal(graph, node.step, &q);
 					}else{
-						V[ln_p->neighbor[i]].direction = thID;
-						V[ln_p->neighbor[i]].length = node.step;
+						graph->V[ln_p->neighbor[i]].direction = thID;
+						graph->V[ln_p->neighbor[i]].length = node.step;
 						node.nodeId = ln_p->neighbor[i];
-printf("Thread %d sets  V[%d]=%d. %d\n", thID, ln_p->neighbor[i], V[ln_p->neighbor[i]].length, V[ln_p->neighbor[i]].direction);
+printf("Thread %d sets  V[%d]=%d. %d\n", thID, ln_p->neighbor[i],
+		graph->V[ln_p->neighbor[i]].length, graph->V[ln_p->neighbor[i]].direction);
 						Graph_leaveCritical(graph);
 						if ( Q_push(q, node) != Success ){
 							ERROR("q_init failed")
@@ -753,24 +739,24 @@ OK_SUCCESS Graph_startUpTask(Graph graph, uint32_t source, uint32_t target){
 	TRACE_IN;
 	uint32_t max_size = graph->nodeIndexOut->size > graph->nodeIndexInc->size?
 			graph->nodeIndexOut->size : graph->nodeIndexInc->size;
-	if ( ( V = malloc(max_size*sizeof(visitFlags) ) ) == NULL ){
+	if ( ( graph->V = malloc(max_size*sizeof(visitFlags) ) ) == NULL ){
 		ERROR("Failed to allocate space V buffer")
 		TRACE_OUT
 		return Memory_Failure;
 	}
-	memset(V, 0xff, max_size*sizeof(visitFlags) );
+	memset(graph->V, 0xff, max_size*sizeof(visitFlags) );
 	int i;
 	for ( i = 0; i < max_size; i++){
-		printf("V[%d]=%d.%d\n", i, V[i].length, V[i].direction);
+		printf("V[%d]=%d.%d\n", i, graph->V[i].length, graph->V[i].direction);
 	}
 	pthread_mutex_lock(&graph->start);
 	graph->masterWaitsForResult = True;
-	finished = 0;
-	retValue = -2;
-	out.source = source;
-	out.target = target;
-	inc.source = target;
-	inc.target = source;
+	graph->workers_finished = 0;
+	graph->result = -2;
+	graph->out.source = source;
+	graph->out.target = target;
+	graph->inc.source = target;
+	graph->inc.target = source;
 	pthread_cond_broadcast(&graph->start_up);
 	pthread_mutex_unlock(&graph->start);
 	TRACE_OUT
