@@ -12,6 +12,11 @@
 
 typedef struct _Sgraph * Graph;
 
+typedef struct _Sflags{
+	uint32_t length;
+	unsigned char direction;
+}visitFlags;
+
 
 typedef struct _Sgraph{
 	NodeIndex *nodeIndexOut;
@@ -28,6 +33,8 @@ typedef struct _Sgraph{
 	Boolean assign;
 	Boolean do_exit;
 	Boolean masterWaitsForResult;
+	visitFlags *V;
+	int workers_finished;
 	int workers_started;
 }graph_t;
 

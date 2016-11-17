@@ -526,14 +526,8 @@ void Graph_workersWaitForTask(Graph graph, int i, Arguments *args){
 #define INCOMING  1
 #define UNDEFINED 0xFF
 
-typedef struct _Sflags{
-	uint32_t length;
-	unsigned char direction;
-}visitFlags;
 
-visitFlags *V;
 int retValue;
-int finished;
 
 /******************************************************
  * FUNCTION: Graph_returnVal
