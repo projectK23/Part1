@@ -31,8 +31,9 @@ typedef struct _Sgraph{
 	pthread_mutex_t critical;
 	pthread_mutex_t start;
 	pthread_mutex_t kill;
+	pthread_mutex_t finish;
 	pthread_cond_t start_up;
-	pthread_cond_t finish;
+	pthread_cond_t finish_out;
 	pthread_cond_t kill_off;
 	pthread_t worker[WORKERS];
 	Boolean assign;
