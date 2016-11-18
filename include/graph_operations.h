@@ -22,6 +22,9 @@ typedef struct _Slast_path_req{
 	uint32_t target;
 }Last_path_req;
 
+typedef enum{
+	START, WAIT, WORK, DIE
+}Graph_state;
 
 typedef struct _Sgraph{
 	NodeIndex *nodeIndexOut;
@@ -32,9 +35,12 @@ typedef struct _Sgraph{
 	pthread_mutex_t start;
 	pthread_mutex_t kill;
 	pthread_mutex_t finish;
+	pthread_mutex_t check_state;
 	pthread_cond_t start_up;
 	pthread_cond_t finish_out;
 	pthread_cond_t kill_off;
+	pthread_cond_t ready;
+	pthread_cond_t change_state;
 	pthread_t worker[WORKERS];
 	Boolean assign;
 	Boolean do_exit;
@@ -45,6 +51,7 @@ typedef struct _Sgraph{
 	int workers_finished;
 	int workers_started;
 	long result;
+	Graph_state state;
 }graph_t;
 
 /******************************************************
@@ -65,6 +72,13 @@ Graph graphCreate();
  */
 OK_SUCCESS graphDestroy(Graph *graph);
 
+/******************************************************
+ * PURPOSE : Sets state in graph
+ * IN      : graph, state
+ * OUT     : n/a
+ * COMMENTS: n/a
+ */
+void Graph_changeState(Graph graph, Graph_state st);
 
 /******************************************************
  * PURPOSE : Insert a node in graph

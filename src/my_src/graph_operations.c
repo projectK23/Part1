@@ -42,6 +42,7 @@ Graph graphCreate(){
 		graph->nodeIndexOut = NULL;
 		graph->nodeIndexInc = NULL;
 	}
+	graph->state = START;
 	if ( ( graph->nodeIndexOut = createNodeIndex() ) == NULL){
 		FATAL("Index can not be initialized.")
 		goto destroy_members;
@@ -85,6 +86,15 @@ Graph graphCreate(){
         ERROR("Mutex init failed");
         pthread_mutex_destroy (&graph->critical);
         pthread_mutex_destroy (&graph->start);
+        pthread_mutex_destroy (&graph->kill);
+		goto destroy_members;
+    }
+	if (pthread_mutex_init(&graph->check_state, NULL) != 0)
+    {
+        ERROR("Mutex init failed");
+        pthread_mutex_destroy (&graph->critical);
+        pthread_mutex_destroy (&graph->start);
+        pthread_mutex_destroy (&graph->kill);
         pthread_mutex_destroy (&graph->finish);
 		goto destroy_members;
     }
@@ -102,6 +112,7 @@ Graph graphCreate(){
         pthread_mutex_destroy (&graph->start);
         pthread_mutex_destroy (&graph->kill);
         pthread_mutex_destroy (&graph->finish);
+        pthread_mutex_destroy (&graph->check_state);
     	pthread_cond_destroy( &graph->start_up );
 		goto destroy_members;
 	}
@@ -111,8 +122,34 @@ Graph graphCreate(){
         pthread_mutex_destroy (&graph->start);
         pthread_mutex_destroy (&graph->kill);
         pthread_mutex_destroy (&graph->finish);
+        pthread_mutex_destroy (&graph->check_state);
+        pthread_cond_destroy( &graph->start_up );
+    	pthread_cond_destroy( &graph->kill_off );
+		goto destroy_members;
+	}
+	if (pthread_cond_init(&graph->ready, NULL) != 0 ){
+        ERROR("Conditional variable init failed");
+        pthread_mutex_destroy (&graph->critical);
+        pthread_mutex_destroy (&graph->start);
+        pthread_mutex_destroy (&graph->kill);
+        pthread_mutex_destroy (&graph->finish);
+        pthread_mutex_destroy (&graph->check_state);
     	pthread_cond_destroy( &graph->start_up );
     	pthread_cond_destroy( &graph->kill_off );
+    	pthread_cond_destroy(&graph->finish_out) ;
+		goto destroy_members;
+	}
+	if (pthread_cond_init(&graph->change_state, NULL) != 0 ){
+        ERROR("Conditional variable init failed");
+        pthread_mutex_destroy (&graph->critical);
+        pthread_mutex_destroy (&graph->start);
+        pthread_mutex_destroy (&graph->kill);
+        pthread_mutex_destroy (&graph->finish);
+        pthread_mutex_destroy (&graph->check_state);
+        pthread_cond_destroy( &graph->start_up );
+    	pthread_cond_destroy( &graph->kill_off );
+    	pthread_cond_destroy(&graph->finish_out) ;
+    	pthread_cond_destroy(&graph->ready) ;
 		goto destroy_members;
 	}
 	int i, j;
@@ -129,12 +166,16 @@ Graph graphCreate(){
 			pthread_mutex_destroy (&graph->start);
 	        pthread_mutex_destroy (&graph->kill);
 	        pthread_mutex_destroy (&graph->finish);
+	        pthread_mutex_destroy (&graph->check_state);
+	        pthread_cond_destroy( &graph->start_up );
 	    	pthread_cond_destroy( &graph->start_up );
 	    	pthread_cond_destroy( &graph->kill_off );
 	    	pthread_cond_destroy( &graph->finish_out);
+	    	pthread_cond_destroy( &graph->ready);
 			goto destroy_members;
 		}
 	}
+	Graph_changeState(graph, WAIT);
 	TRACE_OUT
 	return graph;
 destroy_members:
@@ -145,6 +186,26 @@ destroy_members:
 	free(graph);
 	return NULL;
 }
+
+/******************************************************
+ * PURPOSE : Sets state in graph
+ * IN      : graph, state
+ * OUT     : n/a
+ * COMMENTS: n/a
+ */
+void Graph_changeState(Graph graph, Graph_state st){
+	TRACE_IN
+	pthread_mutex_lock(&graph->check_state);
+	if ( graph->state != st){
+		graph->state = st;
+		pthread_cond_broadcast(&graph->change_state);
+	}else{
+		LOG("We are in the same state");
+	}
+	pthread_mutex_unlock(&graph->check_state);
+	TRACE_OUT
+}
+
 
 /******************************************************
  * PURPOSE : Print graph
@@ -210,6 +271,10 @@ void printGraph(Graph graph){
 OK_SUCCESS graphDestroy(Graph *graph){
 	TRACE_IN
 	Boolean success = True;
+	Graph_enterCritical(*graph);
+	while( (*graph)->state == WORK )
+	Graph_leaveCritical(*graph);
+	if ( )
 	if ( *graph == NULL){
 		LOG("Graph is not initialized");
 		TRACE_OUT
@@ -250,6 +315,7 @@ OK_SUCCESS graphDestroy(Graph *graph){
 	pthread_cond_destroy( &(*graph)->start_up );
 	pthread_cond_destroy( &(*graph)->kill_off);
 	pthread_cond_destroy( &(*graph)->finish_out);
+	pthread_cond_destroy( &graph->ready);
 	free( *graph );
 	*graph = NULL;
 	TRACE_OUT
@@ -474,7 +540,7 @@ void Graph_leaveCritical(Graph graph){
 void Graph_killWorkers(Graph graph){
 	TRACE_IN
 	pthread_mutex_lock(&graph->kill);
-	while (graph->workers_started < 2 )
+	while (graph->workers_started <  )
 		pthread_cond_wait(&graph->kill_off, &graph->kill);
 	pthread_mutex_unlock(&graph->kill);
 	pthread_mutex_lock(&graph->start);
@@ -763,7 +829,9 @@ OK_SUCCESS Graph_startUpTask(Graph graph, uint32_t source, uint32_t target){
 	}
 */	pthread_mutex_lock(&graph->start);
 	graph->masterWaitsForResult = True;
-	graph->workers_finished = 0;
+	while( graph->workers_finished ){
+		pthread_cond_wait(&graph->ready);
+	}
 	graph->result = -2;
 	graph->out.source = source;
 	graph->out.target = target;
