@@ -24,7 +24,7 @@ CINLIB= \
 	-I ../libs/include
 
 STANDARD_LIBS= \
-	-lpthread
+	-lpthread 
 
 #debug level
 ifeq ($(D),error)
@@ -86,8 +86,16 @@ directories: $(OUTDIR)
 
 default: directories $(EXE)
 
-run: directories $(EXE)
+run_tiny: directories $(EXE)
+	./$(EXE) ../datasets/tiny/tinyGraph.txt ../datasets/tiny/tinyWorkload_FINAL.txt
+
+
+run_small: directories $(EXE)
 	./$(EXE) ../datasets/small/smallGraph.txt ../datasets/small/smallWorkload_FINAL.txt
+
+run_medium: directories $(EXE)
+	./$(EXE) ../datasets/medium/mediumGraph.txt ../datasets/medium/mediumWorkload_FINAL.txt
+
 
 memtest: directories test $(EXE) $(EXETEST) 
 	rm -f $(TEST_O)

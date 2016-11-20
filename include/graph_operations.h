@@ -17,41 +17,24 @@ typedef struct _Sflags{
 	unsigned char direction;
 }visitFlags;
 
-typedef struct _Slast_path_req{
+typedef struct _Sleast_path_req{
+	Graph graph;
 	uint32_t source;
 	uint32_t target;
-}Last_path_req;
-
-typedef enum{
-	START, WAIT, WORK, DIE
-}Graph_state;
+	int thID;
+}Least_path_req;
 
 typedef struct _Sgraph{
 	NodeIndex *nodeIndexOut;
 	NodeIndex *nodeIndexInc;
 	Buffer *bufferOut;
 	Buffer *bufferInc;
-	pthread_mutex_t critical;
-	pthread_mutex_t start;
-	pthread_mutex_t kill;
-	pthread_mutex_t finish;
-	pthread_mutex_t check_state;
-	pthread_cond_t start_up;
-	pthread_cond_t finish_out;
-	pthread_cond_t kill_off;
-	pthread_cond_t ready;
-	pthread_cond_t change_state;
-	pthread_t worker[WORKERS];
-	Boolean assign;
-	Boolean do_exit;
-	Last_path_req out;
-	Last_path_req inc;
-	Boolean masterWaitsForResult;
+	pthread_t worker[2];
+	pthread_mutex_t watch_visit;
+	pthread_mutex_t watch_result;
+	uint32_t max;
 	visitFlags *V;
-	int workers_finished;
-	int workers_started;
 	long result;
-	Graph_state state;
 }graph_t;
 
 /******************************************************
@@ -73,14 +56,6 @@ Graph graphCreate();
 OK_SUCCESS graphDestroy(Graph *graph);
 
 /******************************************************
- * PURPOSE : Sets state in graph
- * IN      : graph, state
- * OUT     : n/a
- * COMMENTS: n/a
- */
-void Graph_changeState(Graph graph, Graph_state st);
-
-/******************************************************
  * PURPOSE : Insert a node in graph
  * IN      : Graph, node
  * OUT     : Result cause
@@ -95,14 +70,6 @@ OK_SUCCESS insertNodeInGraph(Graph graph, uint32_t nodeId);
  * COMMENTS: n/a
  */
 OK_SUCCESS insertEdgeInGraph(Graph graph, uint32_t sourceId, uint32_t destId);
-
-/******************************************************
- * FUNCTION: Graph_killWorkers
- * PURPOSE : kills all workers if their task is done
- * IN      : Graph
- * OUT     : n/a
- */
-void Graph_killWorkers(Graph graph);
 
 /******************************************************
  * PURPOSE : Search path

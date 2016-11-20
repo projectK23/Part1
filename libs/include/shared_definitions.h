@@ -10,11 +10,10 @@ typedef unsigned long  uint64_t;
 #	define INIT 100
 #	define STEP 1000
 #else*/
-#	define INIT 5
-#	define STEP 20
+#	define INIT 200
+#	define STEP 100
 //#endif
 
-#define WORKERS 2
 
 typedef unsigned int ptr;
 

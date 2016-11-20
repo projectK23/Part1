@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 /**
  * Include local libs
@@ -23,9 +24,15 @@
 #if DEBUG_LEVEL == 0
 	char fileB1[512];
 	char fileB2[512];
+#ifdef TEST_OUTPUT
+	char fileB3[512];
+#endif
 #else
 	char *fileB1 = "../datasets/tiny/tinyGraph.txt";
 	char *fileB2 = "../datasets/tiny/tinyWorkload_FINAL.txt";
+#ifdef TEST_OUT
+	char *fileB3 = "../datasets/tiny/tinyWorkload_RESULTS.txt";
+#endif
 #endif
 
 	char op[128];
@@ -119,11 +126,23 @@ OK_SUCCESS handleBlast2(){
 		TRACE_OUT
 		return File_does_not_exist;
 	}
-
+#ifdef TEST_OUTPUT
+	FILE *fpTEST;
+	char expectedResult[10];
+	if ( (fpTEST = fopen(fileB3, "r") ) == NULL ){
+		FATAL("Unable to open file for getting results")
+		TRACE_OUT
+		return File_does_not_exist;
+	}
+#endif
+#if DEBUG_LEVEL == 0
+	struct timespec tstart={0,0}, tend={0,0};
+	clock_gettime(CLOCK_MONOTONIC, &tstart);
+#endif
 	LOG("Read data from blast2 file")
 	while( fgets(op, 127, fp) != NULL ){
 		if ( op[0] == 'F' || op[0] == 'f' ){
-			LOG("First burst completed!")
+			LOG("Burst completed!")
 			continue;
 		}
 		sscanf(op, "%c %d %d", &action, &source, &dest);
@@ -144,6 +163,9 @@ OK_SUCCESS handleBlast2(){
 				op[strlen(op)-1] = '\0';
 				printf("%s\t:--> ", op);
 #endif
+#ifdef TEST_OUTPUT
+
+#endif
 				printf("%d\n", existPathInGraph(graph, source, dest) );
 				break;
 
@@ -154,7 +176,16 @@ OK_SUCCESS handleBlast2(){
 
 
 	}
+#if DEBUG_LEVEL == 0
+	clock_gettime(CLOCK_MONOTONIC, &tend);
+	printf("Computation took about %.5f seconds\n",
+	           ((double)tend.tv_sec + 1.0e-9*tend.tv_nsec) -
+	           ((double)tstart.tv_sec + 1.0e-9*tstart.tv_nsec));
+#endif
 	fclose(fp);
+#ifdef TEST_OUTPUT
+	fclose(fpTEST);
+#endif
 	TRACE_OUT
 	return Success;
 }
